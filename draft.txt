@@ -1,0 +1,14 @@
+
+
+app.
+
+grid system & getcell/get cellbounds
+
+board, pieces would be stored as their own grid
+
+
+each piece info stored in dict. include 
+
+
+- 
+- calculate list of possible moves
