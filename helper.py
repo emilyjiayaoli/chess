@@ -10,7 +10,7 @@ def getCell(app, x, y):
     # return (row, col) in which (x, y) occurred or (-1, -1) if outside grid.
     if (not pointInGrid(app, x, y)):
         return (-1, -1)
-    gridWidth  = app.width - 2*app.margin
+    gridWidth  = app.width - 2*app.margin - app.rightMargin
     gridHeight = app.height - 2*app.margin
     cellWidth  = gridWidth / app.cols
     cellHeight = gridHeight / app.rows
@@ -26,12 +26,12 @@ def getCell(app, x, y):
 def getCellBounds(app, row, col):
     # aka "modelToView"
     # returns (x0, y0, x1, y1) corners/bounding box of given cell in grid
-    gridWidth  = app.width - 2*app.margin
+    gridWidth  = app.width - 2*app.margin - app.rightMargin
     gridHeight = app.height - 2*app.margin
     cellWidth = gridWidth / app.cols
     cellHeight = gridHeight / app.rows
     x0 = app.margin + col * cellWidth
-    x1 = app.margin + (col+1) * cellWidth
+    x1 = app.margin + (col+1) * cellWidth 
     y0 = app.margin + row * cellHeight
     y1 = app.margin + (row+1) * cellHeight
     return (x0, y0, x1, y1)
@@ -66,3 +66,15 @@ def rgbString(r, g, b):
     # Don't worry about the :02x part, but for the curious,
     # it says to use hex (base 16) with two digits.
     return f'#{r:02x}{g:02x}{b:02x}'
+
+# used once
+def transpose(L):
+    rowNum = len(L)
+    colNum = len(L[0])
+
+    result = [[None]*rowNum for i in range(colNum)]
+
+    for r in range(rowNum):
+        for c in range(colNum):
+            result[c][r] = L[r][c]
+    return result

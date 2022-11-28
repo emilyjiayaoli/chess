@@ -1,5 +1,6 @@
 from cmu_112_graphics import *
 from helper import *
+import copy
 #notes:
     # check if there are pieces to the foward diagonal of pawns
     # 
@@ -7,7 +8,6 @@ from helper import *
 class Piece:
     def __init__(self, app, name, isWhite, row, col):
         self.name = name
-        self.moves = regularMoves[name]
         self.isWhite = isWhite
         self.row = row
         self.col = col
@@ -16,28 +16,23 @@ class Piece:
         self.imageWidth = 64.5
         self.image = self.getImage(self.name, self.isWhite)
 
-        self.legalMoves = None #set of legal moves
+        self.legalMoves = set() #set of legal moves
         self.showLegalMoves = True
         self.isCaptured = False
+        self.leftEnPassant, self.rightEnPassant = False, False
+
+        if self.name == "pawn":
+            self.enPassant = set()
+
+        if self.name == "king":
+            self.canCastleLeft = False
+            self.canCastleRight = False
 
     def getLegalMoves(self, board):
         if self.name == "pawn":
-            legalMoves = regularMoves["pawn"] #set
-            print(self.isWhite)
-            if not self.isWhite:
-                
-                otherMoves = [(-1, -1), (-1, 1)]
-            else:
-                otherMoves = [(1, -1), (1, 1)]
-            for (drow, dcol) in otherMoves:
-                tempRow, tempCol = self.row + drow, self.col + dcol
-                if 0 <= tempRow <= 7 and 0 <= tempCol <= 7:
-                    # add diagonal capture move if there are pieces
-                    if board[tempRow][tempCol] != None \
-                        and board[tempRow][tempCol].isWhite != self.isWhite:
-                        legalMoves.add((drow, dcol))
-            return legalMoves
-        #returns a set of legal moves for bishop, queen, rook
+            return self.getPawnLegalMoves(board)
+        
+        #returns a set of legal moves for bishop, queen, rook, king
         legalMoves = set()
         for path in regularMoves[self.name]:
             for (drow, dcol) in path:
@@ -46,14 +41,118 @@ class Piece:
                 if 0 <= tempRow <= 7 and 0 <= tempCol <= 7:
                     if board[tempRow][tempCol] == None:
                         legalMoves.add((drow, dcol))
-                    elif board[tempRow][tempCol] != None:
+                    else:
                         # check if different colors
                         if board[tempRow][tempCol].isWhite != self.isWhite:
                             legalMoves.add((drow, dcol)) #capture move
                         # current path is blocked by same colored piece
                         # move onto next path
                         break
+        
+        # # Castling
+        # if self.name == "king":
+        #     # add castle move if castling is valid
+        #     castle = self.isValidCastling(board):
+        #     if castle != None:
+
+                
+
+        print(legalMoves)
         return legalMoves
+
+    def getPawnLegalMoves(self, board):
+        # check if in initial position, allowed to make two moves
+        if self.isWhite:
+            legalMoves = regularMoves["pawn_w"].copy() #set
+            captureMoves = [(1, -1), (1, 1)]
+
+            # basic pawn moves
+            if self.hasAnotherColoredPieceInFront(board):
+                legalMoves.remove((1, 0))
+            elif self.isInitialPawnPosition(): # Double move at initial position
+                legalMoves.add((2, 0))
+
+            #add in later
+            # self.enPassant = self.getEnPassant(board)
+            # if 'left' in self.enPassant:
+            #     legalMoves.add((1, -1))
+            #     self.leftEnPassant = (1, -1)
+            # if 'right' in self.enPassant:
+            #     legalMoves.add((1, 1))
+            #     self.rightEnPassant = (1, 1)
+                
+        else:
+            legalMoves = regularMoves["pawn_b"].copy() #set
+            captureMoves = [(-1, -1), (-1, 1)]
+            
+            print(legalMoves)
+
+             # basic pawn moves
+            if self.hasAnotherColoredPieceInFront(board):
+                legalMoves.remove((-1, 0))
+            elif self.isInitialPawnPosition(): # Double move at initial position
+                legalMoves.add((-2, 0))
+            
+            #add in later
+            # self.enPassant = self.getEnPassant(board)
+            # if 'left' in self.enPassant:
+            #     legalMoves.add((-1, -1))
+            #     self.leftEnPassant = (-1, -1)
+            # if 'right' in self.enPassant:
+            #     legalMoves.add((-1, 1))
+            #     self.rightEnPassant = (-1, 1)
+        
+
+        for (drow, dcol) in captureMoves:
+            tempRow, tempCol = self.row + drow, self.col + dcol
+            if 0 <= tempRow <= 7 and 0 <= tempCol <= 7:
+                # add diagonal capture move if there are pieces
+                if board[tempRow][tempCol] != None \
+                    and board[tempRow][tempCol].isWhite != self.isWhite:
+                    legalMoves.add((drow, dcol))
+        return legalMoves
+    
+    def hasAnotherColoredPieceInFront(self, board):
+        # returns True if pawn has another piece in front, False other
+        if self.isWhite:
+            if board[self.row+1][self.col] != None:
+                return True
+            else: 
+                return False
+        else:
+            if board[self.row-1][self.col] != None:
+                return True
+            else: 
+                return False
+
+    def isInitialPawnPosition(self):
+        # Returns True if pawn is in initial position, False otherwise
+        if self.isWhite:
+            if self.row == 1:
+                return True
+            else: 
+                return False
+        else:
+            if self.row == 6:
+                return True
+            else: 
+                return False
+    
+    def getEnPassant(self, board):
+        # Returns a set specifying if enpasant exists to the left, right, both, or neither {'left', 'right'}
+        enPassant = set()
+        if self.isWhite:
+            if board[self.row][self.col-1] != None and not board[self.row][self.col-1].isWhite:
+                enPassant.add('left')
+            if board[self.row][self.col+1] != None and not board[self.row][self.col+1].isWhite:
+                enPassant.add('right')
+        else: #black pieces
+            if board[self.row][self.col-1] != None and board[self.row][self.col-1].isWhite:
+                enPassant.add('left')
+            if board[self.row][self.col+1] != None and board[self.row][self.col+1].isWhite:
+                enPassant.add('right')
+        return enPassant
+
 
     def getImage(self, name, isWhite):
         # returns image of specified piece and color
@@ -91,6 +190,50 @@ class Piece:
             return 'w_' + self.name
         else:
             return 'b_' + self.name
+    
+    def isValidPawnPromotion(self):
+        # Returns true if a pawn has reached the other end of board
+        if self.name != "pawn":
+            return False
+        else:
+            if self.isWhite:
+                if self.row == 7: 
+                    return True
+                else: 
+                    return False
+            else: #black pawn
+                if self.row == 0: 
+                    return True
+                else: 
+                    return False
+
+    def isValidCastling(self, board):
+        # returns true if castling could be done, else if not
+        castleDir = {}
+        if self.name != "king":
+            return None
+        else:
+            if self.isWhite:
+                castleRow = board[0]
+            else: # black side
+                castleRow = board[7]
+            #left castle
+            if castleRow[0].name == "rook" and castleRow[4].name == "king" \
+                and self.isNothingBetween(castleRow, 1, 4):
+                castleDir.add("left")
+            #right castle
+            if castleRow[7].name == "rook" and castleRow[4].name == "king" \
+                and self.isNothingBetween(castleRow, 5, 7):
+                castleDir.add("right")
+    
+    def isNothingBetween(self, row:list, start, end):
+        # Helper function that returns true if there are no pieces between two indices in a row.
+        # (inclusive, non-inclusive)
+        for piece in row[start:end]:
+            if piece != None:
+                return False
+        return True
+    
 
     def drawPiece(self, app, canvas):
         x0, y0, x1, y1 = getCellBounds(app, self.row, self.col)
@@ -98,29 +241,26 @@ class Piece:
         cy = (y1+y0)//2
         canvas.create_image(cx, cy, image=ImageTk.PhotoImage(self.image))
 
-        if app.isSelected and self.legalMoves != None and self.showLegalMoves:
+    def drawHint(self, app, canvas):
+        
+        if self.name == app.selectedPiece.name and self.showLegalMoves and isinstance(self.legalMoves, set):
+            # counter = 0
             for (drow, dcol) in self.legalMoves:
+                #print(self.row+drow,  self.col+dcol)
                 x0, y0, x1, y1 = getCellBounds(app, self.row+drow, self.col+dcol)
-                cx = (x1+x0)//2
-                cy = (y1+y0)//2
-                radius = 3
+                cx = x0 + abs(x1-x0)//2
+                cy = y0 + abs(y1-y0)//2
+                radius = 5
                 canvas.create_oval(cx-radius, cy-radius, cx+radius, cy+radius, fill = 'pink')
+                #counter += 1
 
 regularMoves = {
-    # 'rook': [[(1,0), (-1,0), (0,1), (0,-1)],
-    #         [(2,0), (-2,0), (0,2), (0,-2)],
-    #         [(3,0), (-3,0), (0,3), (0,-3)],
-    #         [(4,0), (-4,0), (0,4), (0,-4)],
-    #         [(5,0), (-5,0), (0,5), (0,-5)],
-    #         [(6,0), (-6,0), (0,6), (0,-6)],
-    #         [(7,0), (-7,0), (0,7), (0,-7)],
-    #], 
     'rook':[[(1, 0), (2, 0), (3, 0), (4, 0), (5, 0), (6, 0), (7, 0)], #one path
             [(-1, 0), (-2, 0), (-3, 0), (-4, 0), (-5, 0), (-6, 0), (-7, 0)], #another path
             [(0, 1), (0, 2), (0, 3), (0, 4), (0, 5), (0, 6), (0, 7)], 
             [(0, -1), (0, -2), (0, -3), (0, -4), (0, -5), (0, -6), (0, -7)]],
-    'king': [[(1,1), (-1,-1), (-1,1), (1,-1), #diagonal
-                (1,0), (-1,0), (0,1), (0,-1)]], #up, down, left, right
+    'king': [[(1,1)], [(-1,-1)], [(-1,1)], [(1,-1)], #diagonal
+                [(1,0)], [(-1,0)], [(0,1)], [(0,-1)]], #up, down, left, right
     'queen': [
             #up, down, left, right
             [(1, 0), (2, 0), (3, 0), (4, 0), (5, 0), (6, 0), (7, 0)], 
@@ -132,36 +272,15 @@ regularMoves = {
             #diagonal #need to keep going
             [(1, 1), (2, 2), (3, 3), (4, 4), (5, 5), (6, 6), (7, 7)], 
             [(-1, -1), (-2, -2), (-3, -3), (-4, -4), (-5, -5), (-6, -6), (-7, -7)], 
-            [(-1, 1), (-2, 1), (-3, 3), (-4, 4), (-5, 5), (-6, 6), (-7, 7)], 
+            [(-1, 1), (-2, 2), (-3, 3), (-4, 4), (-5, 5), (-6, 6), (-7, 7)], 
             [(1, -1), (2, -2), (3, -3), (4, -4), (5, -5), (6, -6), (7, -7)],
     ],
-    'pawn': {(-1, 0)}, # pawn could move diagonal if want to capture someone
-    # 'bishop': [[(1,1), (-1,-1), (-1,1), (1,-1)], 
-    #             [(2,2), (-2,-2), (-2,1), (2,-2)],
-    #             [(3,3), (-3,-3), (-3,3), (3,-3)],
-    #             [(4,4), (-4,-4), (-4,4), (4,-4)],
-    #             [(5,5), (-5,-5), (-5,5), (5,-5)],
-    #             [(6,6), (-6,-6), (-6,6), (6,-6)],
-    #             [(7,7), (-7,-7), (-7,7), (7,-7)],], 
-                
+    'pawn_w': {(1, 0)}, # default pawn movement
+    'pawn_b': {(-1, 0)},
     'bishop':[[(1, 1), (2, 2), (3, 3), (4, 4), (5, 5), (6, 6), (7, 7)], 
               [(-1, -1), (-2, -2), (-3, -3), (-4, -4), (-5, -5), (-6, -6), (-7, -7)], 
-              [(-1, 1), (-2, 1), (-3, 3), (-4, 4), (-5, 5), (-6, 6), (-7, 7)], 
+              [(-1, 1), (-2, 2), (-3, 3), (-4, 4), (-5, 5), (-6, 6), (-7, 7)], 
               [(1, -1), (2, -2), (3, -3), (4, -4), (5, -5), (6, -6), (7, -7)]],
     
-    'knight': [[(-2,-1), (-1,-2), (2,1), (1,2), (-2,1), (-1,2), (2,-1), (1,-2)]]
+    'knight': [[(-2,-1)], [(-1,-2)], [(2,1)], [(1,2)], [(-2,1)], [(-1,2)], [(2,-1)], [(1,-2)]]
 }
-
-
-# def transpose(L):
-#     rowNum = len(L)
-#     colNum = len(L[0])
-
-#     result = [[None]*rowNum for i in range(colNum)]
-
-#     for r in range(rowNum):
-#         for c in range(colNum):
-#             result[c][r] = L[r][c]
-#     return result
-
-# print(transpose(regularMoves['bishop']))

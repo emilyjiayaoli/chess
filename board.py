@@ -28,10 +28,10 @@ class Board:
             self.emptyBoard[7][p] = Piece(app, pieces[p], False, 7, p)
         return self.emptyBoard
 
-    def movePiece(self, oldRow, oldCol, newRow, newCol):
+    def movePiece(self, app, oldRow, oldCol, newRow, newCol):
         # moves piece if movable
 
-        piece = self.board[oldRow][oldCol]
+        piece = app.selectedPiece
 
         # for queens, bishop, and rook, nothing can be blocking the way
         #if new move is not out of bounds
@@ -49,7 +49,9 @@ class Board:
             piece.row = newRow
             piece.col = newCol
 
+            piece.legalMoves = set
             return "success"
+
         return "failure"
 
     
@@ -77,6 +79,15 @@ class Board:
                 piece = self.board[r][c]
                 if piece != None:
                     piece.drawPiece(app, canvas)
+
+                if app.isSelected and app.selectedPiece != None:
+                    app.selectedPiece.drawHint(app, canvas)
+    
+    def isCheck(self):
+        pass
+
+    def isCheckmate(self):
+        pass
 
     def __repr__(self):
         return repr2dList(self.board)

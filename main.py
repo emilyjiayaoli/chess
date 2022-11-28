@@ -6,17 +6,34 @@ import copy
 
 def appStarted(app):
     app.mode = "startScreen"
-    app.margin = 0
+    app.margin = 10
+    app.rightMargin = 260
 
     app.rows = 8
     app.cols = 8
     app.board = Board(app)
-    print(app.board)
-
+    #print(app.board)
+    app.whiteTurn = True
+    app.x0, app.y0, app.x1, app.y1 = getBoardBounds(app) # for board
+    # print(app.width, app.height)
+    # print(app.x0, app.y0, app.x1, app.y1)
     app.isSelected = False
     app.selectedPiece = None
     app.hoverPiece = None
 
+    app.isPawnPromoNow = False
+    app.curPawnProm = None
+
+def getBoardBounds(app):
+    upperLeft = getCellBounds(app, 0, 0)
+    upperRight = getCellBounds(app, 0, 7)
+    lowerLeft = getCellBounds(app, 7, 0)
+    lowerRight = getCellBounds(app, 7, 7)
+    x0 = upperLeft[0]
+    y0 = upperLeft[1]
+    x1 = upperRight[2]
+    y1 = lowerRight[3]
+    return x0, y0, x1, y1
 
 def startScreen_redrawAll(app, canvas):
     text = "Welcome to ChessAI"
@@ -49,60 +66,79 @@ def startScreen_keyPressed(app, event):
 
 
 def main_mousePressed(app, event):
-    row, col = getCell(app, event.x, event.y)
-
-    app.isSelected = not app.isSelected
-    app.hoverPiece = app.board.board[row][col]
-
-    if app.isSelected:
-        if app.hoverPiece != None:
-            app.selectedPiece = app.hoverPiece
-            app.selectedPiece.legalMoves = app.selectedPiece.getLegalMoves(app.board.board)
-    else:
-        if (app.selectedPiece != None and app.hoverPiece == None) or\
-            (app.selectedPiece != None and app.hoverPiece.isWhite != app.selectedPiece.isWhite):
-            status = app.board.movePiece(app.selectedPiece.row, app.selectedPiece.col, row, col)
-
-
-
-    # if app.hoverPiece == None:
-    #     if app.isSelected:
-    #         app.selectedPiece = app.board.board[row][col] #pick up
-    #         # if app.selectedPiece != None:
-    #         app.selectedPiece.legalMoves = app.selectedPiece.getLegalMoves(app.board.board)
-    #     else:
-    #         if app.selectedPiece != None:
-    #             if app.hoverPiece!= None and app.hoverPiece.isWhite != app.selectedPiece.isWhite:
-    #                 status = app.board.movePiece(app.selectedPiece.row, app.selectedPiece.col, row, col)
-    #                 app.selectedPiece = None
-    # elif app.hoverPiece != None:
-
-    print("app.isSelected", app.isSelected)
-    print("app.selectedPiece", app.selectedPiece)
-
+    # print(event.x, event.y)
+    # print("app.isPawnPromoNow", app.isPawnPromoNow)
     
-    # if app.selectedPiece != None:
-    #     if app.isSelected:
-    #         app.selectedPiece.legalMoves = app.selectedPiece.getLegalMoves(app.board.board)
-    #     else:
-    #         status = app.board.movePiece(app.selectedPiece.row, app.selectedPiece.col, row, col)
-    #         app.selectedPiece = None
-    #     app.isSelected = not app.isSelected
-    # else:
-    #     app.isSelected = False
-    # # if app.mouseR:
-    #     if app.board.board[row][col] != None:
-    #         piece = app.board.board[row][col]
-    #         print(piece.row, piece.col)
-    #         app.mouseR = False #mouse clicked
 
-    # if not app.mouseR and app.bobard.board[row][col] == None:
-    #     piece = app.board.board[row][col]
-    #     print(piece.row, piece.col)
-    #     piece.row = row
-    #     piece.col = col
-    #     app.mouseR = True #mouse clicked
-    print(app.board)
+    newPieceName = clickButton(app, event.x, event.y)
+    print("newPieceName", newPieceName)
+    
+    # Pawn promotion
+    if app.isPawnPromoNow and (newPieceName != None) and (app.curPawnProm != None):
+            newPieceRow = app.curPawnProm.row
+            newPieceCol = app.curPawnProm.col
+            app.board.board[newPieceRow][newPieceCol] = Piece(app, newPieceName, app.curPawnProm.isWhite, newPieceRow, newPieceCol)
+            
+            # Reset to default after pawn promotion
+            app.isPawnPromoNow = False 
+            app.curPawnProm = None
+        
+    # Regular Moves
+    if (app.x0 <= event.x <= app.x1) and (app.y0 <= event.y <= app.y1) and not app.isPawnPromoNow:
+        row, col = getCell(app, event.x, event.y)
+        app.hoverPiece = app.board.board[row][col] # Piece clicked
+        
+        # Select: only if nothing was selected before
+        if app.isSelected == False:
+            if app.hoverPiece != None and (app.hoverPiece.isWhite == app.whiteTurn): #select something if turn
+                app.isSelected = True
+                app.selectedPiece = app.hoverPiece
+                app.selectedPiece.legalMoves = app.selectedPiece.getLegalMoves(app.board.board)
+
+                castleDir = app.selectedPiece.isValidCastling(app.board.board)
+                # if castleable
+                if castleDir != None:
+                    if "left" in castleDir:
+                        #add castle left to legal moves, set piece.canCastleLeft = True 
+                    if "right" in castleDir:
+                        #add castle right to legal moves, set piece.canCastleRight = True
+
+
+
+
+                # if no valid moves, reset to not clicked
+                if len(app.selectedPiece.legalMoves) == 0:
+                    app.isSelected = False
+                    app.selectedPiece = None
+
+
+        # Release: move the selected piece if legal
+        else:
+             # if moving itself on top of itself, reset to not clicked
+            if (app.hoverPiece == app.selectedPiece):
+                app.isSelected = False
+                app.selectedPiece = None
+            
+            # move piece if legal
+            if (app.selectedPiece != None and app.hoverPiece == None) or\
+                (app.selectedPiece != None and app.hoverPiece.isWhite != app.selectedPiece.isWhite):
+                status = app.board.movePiece(app, app.selectedPiece.row, app.selectedPiece.col, row, col)
+                if status == 'success':
+                    app.whiteTurn = not app.whiteTurn # flip turns after moving piece
+
+                    # checks if pawn promotion is valid
+                    if app.selectedPiece.isValidPawnPromotion(): 
+                        app.isPawnPromoNow = True
+                        app.curPawnProm = app.selectedPiece
+                    
+                # reset if failed to move piece (e.g target is not a valid move)
+                elif status == 'failure':
+                    app.isSelected = False
+                    app.selectedPiece = None
+
+
+        print("app.isSelected", app.isSelected)
+        print("app.selectedPiece", app.selectedPiece)
 
 
 def main_keyPressed(app, event):
@@ -111,8 +147,54 @@ def main_keyPressed(app, event):
 
 def main_timerFired(app):
     pass
+        
+def clickButton(app, x, y):
+    center = app.rightMargin//2 + (app.x1)
+    buttonWidth = 60
+    buttonHeight = 15
+
+    if (center-buttonWidth <= x <= center+buttonWidth) and (160-buttonHeight <= y <= 160+buttonHeight):
+        return "queen"
+    elif (center-buttonWidth <= x <= center+buttonWidth) and (200-buttonHeight <= y <= 200+buttonHeight):
+        return "rook"
+    elif (center-buttonWidth <= x <= center+buttonWidth) and (240-buttonHeight <= y <= 240+buttonHeight):
+        return "bishop"
+    elif (center-buttonWidth <= x <= center+buttonWidth) and (280-buttonHeight <= y <= 280+buttonHeight):
+        return "knight"
+    return None
+    # canvas.create_rectangle(center-buttonWidth, 200-buttonHeight, center+buttonWidth, 200+buttonHeight, fill="pink")
+    # canvas.create_text(center, 200, text="rook")
+
+    # canvas.create_rectangle(center-buttonWidth, 240-buttonHeight, center+buttonWidth, 240+buttonHeight, fill="pink")
+    # canvas.create_text(center, 240, text="bishop")
+
+    # canvas.create_rectangle(center-buttonWidth, 280-buttonHeight, center+buttonWidth, 280+buttonHeight, fill="pink")
+    # canvas.create_text(center, 280, text="knight")
 
 def main_redrawAll(app, canvas):
     app.board.drawBoard(app,canvas)
+    canvas.create_text(app.width//2, app.height//2, text=f"White Turn {app.whiteTurn}")
     
-runApp(width=680, height=680) # quit still runs next one, exit does not
+    
+    if app.isPawnPromoNow:
+        center = app.rightMargin//2 + (app.x1)
+        buttonWidth = 60
+        buttonHeight = 15
+        canvas.create_text(center, 100, text="Pawn Promotion")
+        canvas.create_text(center, 120, text="Choose Piece:")
+        
+        canvas.create_rectangle(center-buttonWidth, 160-buttonHeight, center+buttonWidth, 160+buttonHeight, fill="pink")
+        canvas.create_text(center, 160, text="queen")
+
+        canvas.create_rectangle(center-buttonWidth, 200-buttonHeight, center+buttonWidth, 200+buttonHeight, fill="pink")
+        canvas.create_text(center, 200, text="rook")
+
+        canvas.create_rectangle(center-buttonWidth, 240-buttonHeight, center+buttonWidth, 240+buttonHeight, fill="pink")
+        canvas.create_text(center, 240, text="bishop")
+
+        canvas.create_rectangle(center-buttonWidth, 280-buttonHeight, center+buttonWidth, 280+buttonHeight, fill="pink")
+        canvas.create_text(center, 280, text="knight")
+        # canvas.create_rectangle(app.width//2, app.rectangle//2)
+        # canvas
+
+runApp(width=940, height=680) # quit still runs next one, exit does not
