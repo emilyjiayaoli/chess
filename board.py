@@ -104,10 +104,8 @@ class Board:
 
     
     def drawBoard(self, app, canvas):
-        #print(repr2dList(self.board))
-        # if self.board[0][3] != None:
-        #     print("king spot", self.board[0][3].name, self.board[0][3].isWhite)
-        # else: print("king spot None")
+
+        # Iterates through board 2d list and draws each piece
         for r in range(len(self.board)):
             for c in range(len(self.board[0])):
 
@@ -128,15 +126,19 @@ class Board:
                         canvas.create_rectangle(x0, y0, x1, y1, fill=self.color2, width = 0)
                     
 
+                # draws each piece
                 piece = self.board[r][c]
                 if piece != None:
                     piece.drawPiece(app, canvas)
-
+                
+                # draws hint circles for selected piece
                 if app.isSelected and app.selectedPiece != None:
                     app.selectedPiece.drawHint(app, canvas)
     
     def isCheck(self):
-        pass
+        for r in range(len(self.board)):
+            for c in range(len(self.board[0])):
+                pass
 
     def isCheckmate(self):
         pass
