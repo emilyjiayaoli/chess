@@ -24,6 +24,17 @@ def appStarted(app):
     app.isPawnPromoNow = False
     app.curPawnProm = None
 
+    app.whiteAlreadyCastled = False
+    app.blackAlreadyCastled = False
+
+    app.whiteKingAlreadyMoved = False
+    app.whiteLeftRookAlreadyMoved = False
+    app.whiteRightRookAlreadyMoved = False
+
+    app.blackKingAlreadyMoved = False
+    app.blackLeftRookAlreadyMoved = False
+    app.blackRightRookAlreadyMoved = False
+
 def getBoardBounds(app):
     upperLeft = getCellBounds(app, 0, 0)
     upperRight = getCellBounds(app, 0, 7)
@@ -95,16 +106,10 @@ def main_mousePressed(app, event):
                 app.selectedPiece = app.hoverPiece
                 app.selectedPiece.legalMoves = app.selectedPiece.getLegalMoves(app.board.board)
 
-                castleDir = app.selectedPiece.isValidCastling(app.board.board)
-                # if castleable
-                if castleDir != None:
-                    if "left" in castleDir:
-                        #add castle left to legal moves, set piece.canCastleLeft = True 
-                    if "right" in castleDir:
-                        #add castle right to legal moves, set piece.canCastleRight = True
-
-
-
+                # Adds castle-ble moves if there are any
+                addCastleMoves(app)
+    
+                print("app.selectedPiece.legalMoves", app.selectedPiece.legalMoves)
 
                 # if no valid moves, reset to not clicked
                 if len(app.selectedPiece.legalMoves) == 0:
@@ -126,10 +131,16 @@ def main_mousePressed(app, event):
                 if status == 'success':
                     app.whiteTurn = not app.whiteTurn # flip turns after moving piece
 
+                    #Detects if rooks and king have been moved
+                    updateKingAndRookStatus(app)
+
                     # checks if pawn promotion is valid
                     if app.selectedPiece.isValidPawnPromotion(): 
                         app.isPawnPromoNow = True
                         app.curPawnProm = app.selectedPiece
+                    
+                    app.isSelected = False
+                    app.selectedPiece = None
                     
                 # reset if failed to move piece (e.g target is not a valid move)
                 elif status == 'failure':
@@ -139,7 +150,63 @@ def main_mousePressed(app, event):
 
         print("app.isSelected", app.isSelected)
         print("app.selectedPiece", app.selectedPiece)
+        print(repr2dList(app.board.board))
 
+def addCastleMoves(app):
+    # Helper function that adds castle moves to selected piece if it is castle-ble
+    isWhite = app.selectedPiece.isWhite
+    if isWhite and not app.whiteAlreadyCastled and not app.whiteKingAlreadyMoved:
+        canCastle = True
+    elif not isWhite and not app.blackAlreadyCastled and not app.blackKingAlreadyMoved:
+        canCastle = True
+    else:
+        canCastle = False
+
+    if app.selectedPiece.name == "king" and canCastle:
+        castleDir = app.selectedPiece.isValidCastling(app.board.board)
+        print("castleDir:", castleDir)
+        # if castleable
+        if castleDir != None:
+            if app.selectedPiece.isWhite:
+                if "left" in castleDir and not app.whiteLeftRookAlreadyMoved:
+                    app.selectedPiece.legalMoves.add((0, -2))
+                    app.selectedPiece.canCastleLeft = True
+                    #add castle left to legal moves, set piece.canCastleLeft = True 
+
+                if "right" in castleDir and not app.whiteRightRookAlreadyMoved:
+                    app.selectedPiece.legalMoves.add((0, 2))
+                    app.selectedPiece.canCastleRight = True
+                    #add castle right to legal moves, set piece.canCastleRight = True
+            else:
+                if "left" in castleDir and not app.blackLeftRookAlreadyMoved:
+                    app.selectedPiece.legalMoves.add((0, -2))
+                    app.selectedPiece.canCastleLeft = True
+                    #add castle left to legal moves, set piece.canCastleLeft = True 
+
+                if "right" in castleDir and not app.blackRightRookAlreadyMoved:
+                    app.selectedPiece.legalMoves.add((0, 2))
+                    app.selectedPiece.canCastleRight = True
+                    #add castle right to legal moves, set piece.canCastleRight = True
+
+        
+def updateKingAndRookStatus(app):
+    # Helper function detects and updates if rooks and king have been moved
+    if app.selectedPiece.isWhite:
+        if app.selectedPiece.name == "king":
+            app.whiteKingAlreadyMoved = True
+        elif app.selectedPiece.name == "rook":
+            if app.selectedPiece.col == 0:
+                app.whiteLeftRookAlreadyMoved = True
+            elif app.selectedPiece.col == 7:
+                app.whiteRightRookAlreadyMoved = True
+    else:
+        if app.selectedPiece.name == "king":
+            app.blackKingAlreadyMoved = True
+        elif app.selectedPiece.name == "rook":
+            if app.selectedPiece.col == 0:
+                app.blackLeftRookAlreadyMoved = True
+            elif app.selectedPiece.col == 7:
+                app.blackRightRookAlreadyMoved = True
 
 def main_keyPressed(app, event):
     if (event.key == "r"):

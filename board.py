@@ -2,6 +2,7 @@ from cmu_112_graphics import *
 from pieces import *
 from helper import *
 from pandas import *
+import copy
 
 class Board:
     def __init__(self, app):
@@ -42,20 +43,71 @@ class Board:
         #piece.legalMoves = piece.getLegalMoves(self.board)
 
         if (drow, dcol) in piece.legalMoves:
-            # changes the internal board
-            self.board[newRow][newCol] = piece
-            self.board[oldRow][oldCol] = None
+            if piece.name == "king" and piece.canCastleLeft and ((drow, dcol) == (0, -2)):
+                    print("castling left!")
+                    # changes king position
+                    self.board[newRow][newCol] = self.board[oldRow][oldCol]
+                    self.board[oldRow][oldCol] = None
+                    # update king's row and col attributes
+                    self.board[newRow][newCol].row = newRow
+                    self.board[newRow][newCol].col = newCol
 
-            piece.row = newRow
-            piece.col = newCol
+                    # changes rook position
+                    self.board[newRow][3] = self.board[newRow][0]
+                    self.board[newRow][0] = None
+                    # update rook's row and col attributes
+                    self.board[newRow][3].row = newRow
+                    self.board[newRow][3].col = 3
 
-            piece.legalMoves = set
+                    piece.canCastleLeft = False
+                    if piece.isWhite:
+                        app.whiteAlreadyCastled = True
+                    else:
+                        app.blackAlreadyCastled = True
+
+            elif piece.name == "king" and piece.canCastleRight and ((drow, dcol) == (0, 2)):
+                    # castle right
+                    self.board[newRow][newCol] = self.board[oldRow][oldCol]
+                    self.board[oldRow][oldCol] = None
+                    # update king's row and col attributes
+                    self.board[newRow][newCol].row = newRow
+                    self.board[newRow][newCol].col = newCol
+
+                    # changes rook position
+                    self.board[newRow][5] = self.board[newRow][7]
+                    self.board[newRow][7] = None
+                    # update rook's row and col attributes
+                    self.board[newRow][5].row = newRow
+                    self.board[newRow][5].col = 5
+                
+                    piece.canCastleRight = False
+
+                    if piece.isWhite:
+                        app.whiteAlreadyCastled = True
+                    else:
+                        app.blackAlreadyCastled = True
+                    #piece.alreadyCastled = True
+        
+            else:
+                #changes the internal board
+                self.board[newRow][newCol] = piece
+                self.board[oldRow][oldCol] = None
+
+                #changes the piece attribute
+                piece.row = newRow
+                piece.col = newCol
+
+            piece.legalMoves = set()
             return "success"
 
         return "failure"
 
     
     def drawBoard(self, app, canvas):
+        #print(repr2dList(self.board))
+        # if self.board[0][3] != None:
+        #     print("king spot", self.board[0][3].name, self.board[0][3].isWhite)
+        # else: print("king spot None")
         for r in range(len(self.board)):
             for c in range(len(self.board[0])):
 

@@ -27,6 +27,8 @@ class Piece:
         if self.name == "king":
             self.canCastleLeft = False
             self.canCastleRight = False
+            # self.alreadyCastled = False
+        
 
     def getLegalMoves(self, board):
         if self.name == "pawn":
@@ -209,7 +211,7 @@ class Piece:
 
     def isValidCastling(self, board):
         # returns true if castling could be done, else if not
-        castleDir = {}
+        castleDir = set()
         if self.name != "king":
             return None
         else:
@@ -225,6 +227,7 @@ class Piece:
             if castleRow[7].name == "rook" and castleRow[4].name == "king" \
                 and self.isNothingBetween(castleRow, 5, 7):
                 castleDir.add("right")
+        return castleDir
     
     def isNothingBetween(self, row:list, start, end):
         # Helper function that returns true if there are no pieces between two indices in a row.
