@@ -14,6 +14,16 @@ class Board:
         # style
         self.color1 = rgbString(252, 251, 232) #light yellow
         self.color2 = rgbString(191, 117, 124) #maroon
+
+        # self.w_kingRow = 0
+        # self.w_kingCol = 3
+        # self.b_kingRow = 7
+        # self.b_kingCol = 3
+
+        self.w_king = self.board[0][4] # attatched to the object
+        #self.w_kingCol = self.board[0][3].col
+        self.b_king = self.board[7][4]
+        #self.b_kingCol = self.board[7][3].col
         
     def setUpBoard(self, app):
         # returns 2d list with pieces set up at their inital positions
@@ -29,17 +39,14 @@ class Board:
             self.emptyBoard[7][p] = Piece(app, pieces[p], False, 7, p)
         return self.emptyBoard
 
-    def movePiece(self, app, oldRow, oldCol, newRow, newCol):
+    def movePiece(self, app, piece, oldRow, oldCol, newRow, newCol, internalOnly=False):
         # moves piece if movable
-
-        piece = app.selectedPiece
 
         # for queens, bishop, and rook, nothing can be blocking the way
         #if new move is not out of bounds
 
         drow = newRow-oldRow
         dcol = newCol-oldCol
-
         #piece.legalMoves = piece.getLegalMoves(self.board)
 
         if (drow, dcol) in piece.legalMoves:
@@ -48,16 +55,18 @@ class Board:
                     # changes king position
                     self.board[newRow][newCol] = self.board[oldRow][oldCol]
                     self.board[oldRow][oldCol] = None
-                    # update king's row and col attributes
-                    self.board[newRow][newCol].row = newRow
-                    self.board[newRow][newCol].col = newCol
+                    if not internalOnly:
+                        # update king's row and col attributes
+                        self.board[newRow][newCol].row = newRow
+                        self.board[newRow][newCol].col = newCol
 
                     # changes rook position
                     self.board[newRow][3] = self.board[newRow][0]
                     self.board[newRow][0] = None
-                    # update rook's row and col attributes
-                    self.board[newRow][3].row = newRow
-                    self.board[newRow][3].col = 3
+                    if not internalOnly:
+                        # update rook's row and col attributes
+                        self.board[newRow][3].row = newRow
+                        self.board[newRow][3].col = 3
 
                     piece.canCastleLeft = False
                     if piece.isWhite:
@@ -69,19 +78,20 @@ class Board:
                     # castle right
                     self.board[newRow][newCol] = self.board[oldRow][oldCol]
                     self.board[oldRow][oldCol] = None
-                    # update king's row and col attributes
-                    self.board[newRow][newCol].row = newRow
-                    self.board[newRow][newCol].col = newCol
+                    if not internalOnly:
+                        # update king's row and col attributes
+                        self.board[newRow][newCol].row = newRow
+                        self.board[newRow][newCol].col = newCol
 
                     # changes rook position
                     self.board[newRow][5] = self.board[newRow][7]
                     self.board[newRow][7] = None
-                    # update rook's row and col attributes
-                    self.board[newRow][5].row = newRow
-                    self.board[newRow][5].col = 5
+                    if not internalOnly:
+                        # update rook's row and col attributes
+                        self.board[newRow][5].row = newRow
+                        self.board[newRow][5].col = 5
                 
                     piece.canCastleRight = False
-
                     if piece.isWhite:
                         app.whiteAlreadyCastled = True
                     else:
@@ -93,9 +103,10 @@ class Board:
                 self.board[newRow][newCol] = piece
                 self.board[oldRow][oldCol] = None
 
-                #changes the piece attribute
-                piece.row = newRow
-                piece.col = newCol
+                if not internalOnly:
+                    #changes the piece attribute
+                    piece.row = newRow
+                    piece.col = newCol
 
             piece.legalMoves = set()
             return "success"
@@ -135,13 +146,96 @@ class Board:
                 if app.isSelected and app.selectedPiece != None:
                     app.selectedPiece.drawHint(app, canvas)
     
+    # def isCheckHelper(self, app, isWhite):
+    #     if isWhite:
+    #         kingRow = self.b_king.row
+    #         kingCol = self.b_king.col
+    #         dRowToKing = kingRow - app.selectedPiece.row
+    #         dColToKing = kingCol - app.selectedPiece.col
+    #         print("king row, col:", kingRow, kingCol, dRowToKing, dColToKing)
+    #     else:
+    #         kingRow = self.w_king.row
+    #         kingCol = self.w_king.col
+    #         dRowToKing = kingRow - app.selectedPiece.row
+    #         dColToKing = kingCol - app.selectedPiece.col
+    #         print("king row, col:", kingRow, kingCol)
+    #     for r in range(len(self.board)):
+    #         for c in range(len(self.board[0])):
+    #             piece = self.board[r][c]
+    #             if piece != None and piece.isWhite != isWhite:
+    #                 piece.legalMoves = piece.getLegalMoves(self.board)
+    #                 if piece.name == "bishop": print(piece.isWhite, piece.getLegalMoves(self.board))
+    #                 if (dRowToKing, dColToKing) in piece.legalMoves:
+    #                     return True, isWhite
+    #     return False, None
+
+
+    # iterates board to check if there is a checking move made by any side, if so, return True
     def isCheck(self):
+        # check every piece's legal move & it's change to the opposite color king
         for r in range(len(self.board)):
             for c in range(len(self.board[0])):
-                pass
+                piece = self.board[r][c]
+                if piece != None:
+                    piece.legalMoves = piece.getLegalMoves(self.board)
+                    if piece.isWhite:
+                        kingRow = self.b_king.row #opposite color king's position
+                        kingCol = self.b_king.col
+                        dRowToKing = kingRow - piece.row
+                        dColToKing = kingCol - piece.col
+                        #if piece.name == "bishop": print("white", piece.legalMoves, kingRow, kingCol)
+                        if (dRowToKing, dColToKing) in piece.legalMoves:
+                            return True, "whiteChecking"
+                    else:
+                        kingRow = self.w_king.row #opposite color king's position
+                        kingCol = self.w_king.col
+                        dRowToKing = kingRow - piece.row
+                        dColToKing = kingCol - piece.col
+                        #if piece.name == "bishop": print("black", piece.legalMoves, kingRow, kingCol)
+                        if (dRowToKing, dColToKing) in piece.legalMoves:
+                            return True, "blackChecking"
+        return False, None
 
-    def isCheckmate(self):
-        pass
+
+    # outdated version: checks only if king is in direct path
+    def isCheckV1(self, app, legalMoves, isWhite):
+        
+        if isWhite:
+            kingRow = self.b_king.row
+            kingCol = self.b_king.col
+            dRowToKing = kingRow - app.selectedPiece.row
+            dColToKing = kingCol - app.selectedPiece.col
+            print("king row, col:", kingRow, kingCol)
+        else:
+            kingRow = self.w_king.row
+            kingCol = self.w_king.col
+            dRowToKing = kingRow - app.selectedPiece.row
+            dColToKing = kingCol - app.selectedPiece.col
+            print("king row, col:", kingRow, kingCol)
+        
+        # if path to king is in currently selected piece's legalMoves, then king is in check
+        #if (dRowToKing, dColToKing) in app.selectedPiece.legalMoves:
+        if (dRowToKing, dColToKing) in legalMoves:
+            return True
+        else:
+            return False
+
+    def isCheckmate(self, app):
+        # if is check and the king has no legal moves
+        if app.isCheck:
+            if app.colorChecking == "whiteChecking":
+                # self.b_king.legalMoves = self.b_king.getLegalMoves(self.board)
+                if self.b_king.hasNoMoves(app, app.board): #self.b_king.hasNoProtection(app.board) and 
+                #if self.b_king.legalMoves == set():
+                    print("whiteWon")
+                    return True, "whiteWon"
+            elif app.colorChecking == "blackChecking":
+                # self.w_king.legalMoves = self.b_king.getLegalMoves(self.board)
+                if self.w_king.hasNoMoves(app, app.board): #self.w_king.hasNoProtection(app, app.board) and 
+                #if self.w_king.legalMoves == set():
+                    print("blackWon")
+                    return True, "blackWon"
+        return False, None
 
     def __repr__(self):
         return repr2dList(self.board)

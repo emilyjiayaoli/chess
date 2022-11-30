@@ -35,6 +35,10 @@ def appStarted(app):
     app.blackLeftRookAlreadyMoved = False
     app.blackRightRookAlreadyMoved = False
 
+    app.isCheck = False
+    app.colorChecking = None
+    app.isCheckmate = False
+
 def getBoardBounds(app):
     upperLeft = getCellBounds(app, 0, 0)
     upperRight = getCellBounds(app, 0, 7)
@@ -47,8 +51,13 @@ def getBoardBounds(app):
     return x0, y0, x1, y1
 
 def startScreen_redrawAll(app, canvas):
+    # color = rgbString(191, 117, 124)
+    # # 158, 68, 77
+    # canvas.create_rectangle(0, 0, app.width, app.height, fill=color)
     text = "Welcome to ChessAI"
-    canvas.create_text(app.width//2, app.height//2, text=text)
+    canvas.create_text(app.width//2, app.height//2, text=text, font="Courier 35 bold")
+    text = "Press B to begin playing 2 Player Mode"
+    canvas.create_text(app.width//2, app.height//2 + 40, text=text)
     
 
 # def drawButton(canvas, targetRectTuple, text, color="pink"):
@@ -111,6 +120,8 @@ def main_mousePressed(app, event):
     
                 print("app.selectedPiece.legalMoves", app.selectedPiece.legalMoves)
 
+                ##
+
                 # if no valid moves, reset to not clicked
                 if len(app.selectedPiece.legalMoves) == 0:
                     app.isSelected = False
@@ -127,7 +138,7 @@ def main_mousePressed(app, event):
             # move piece if legal
             if (app.selectedPiece != None and app.hoverPiece == None) or\
                 (app.selectedPiece != None and app.hoverPiece.isWhite != app.selectedPiece.isWhite):
-                status = app.board.movePiece(app, app.selectedPiece.row, app.selectedPiece.col, row, col)
+                status = app.board.movePiece(app, app.selectedPiece, app.selectedPiece.row, app.selectedPiece.col, row, col)
                 if status == 'success':
                     app.whiteTurn = not app.whiteTurn # flip turns after moving piece
 
@@ -148,9 +159,17 @@ def main_mousePressed(app, event):
                     app.selectedPiece = None
 
 
-        print("app.isSelected", app.isSelected)
-        print("app.selectedPiece", app.selectedPiece)
-        print(repr2dList(app.board.board))
+        #print("app.isSelected", app.isSelected)
+        #print("app.selectedPiece", app.selectedPiece)
+        #print(repr2dList(app.board.board))
+
+        # app.isCheckmate, winner = app.board.isCheckmate(app)
+        # if app.isCheckmate:
+        #     print("Game Over!!", winner)
+
+        app.isCheck, app.colorChecking = app.board.isCheck()
+        if app.isCheck:
+            print("check!", app.colorChecking)
 
 def addCastleMoves(app):
     # Helper function that adds castle moves to selected piece if it is castle-ble
@@ -238,9 +257,23 @@ def clickButton(app, x, y):
     # canvas.create_rectangle(center-buttonWidth, 280-buttonHeight, center+buttonWidth, 280+buttonHeight, fill="pink")
     # canvas.create_text(center, 280, text="knight")
 
+def getTurn(app):
+    if app.whiteTurn:
+        return "white"
+    else:
+        return "black"
+
 def main_redrawAll(app, canvas):
+    # color = rgbString(158, 68, 77)
+    # # 158, 68, 77
+    # canvas.create_rectangle(0, 0, app.width, app.height, fill=color)
     app.board.drawBoard(app,canvas)
-    canvas.create_text(app.width//2, app.height//2, text=f"White Turn {app.whiteTurn}")
+    canvas.create_text(7*app.width//8 , 7*app.height//8, text=f"Turn: {getTurn(app)}", font="Courier 16 bold")
+
+    if app.isCheck:
+        canvas.create_text(7*app.width//8 , 6*app.height//8, text=f"Check!", font="Courier 16 bold")
+    
+    canvas.create_text(7*app.width//8 , 7.8*app.height//8, text=f"Press r to restart game", font="Courie 14")
     
     
     if app.isPawnPromoNow:

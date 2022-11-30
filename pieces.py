@@ -59,7 +59,7 @@ class Piece:
 
                 
 
-        print(legalMoves)
+        #print(legalMoves)
         return legalMoves
 
     def getPawnLegalMoves(self, board):
@@ -87,7 +87,7 @@ class Piece:
             legalMoves = regularMoves["pawn_b"].copy() #set
             captureMoves = [(-1, -1), (-1, 1)]
             
-            print(legalMoves)
+            #print(legalMoves)
 
              # basic pawn moves
             if self.hasAnotherColoredPieceInFront(board):
@@ -236,7 +236,51 @@ class Piece:
             if piece != None:
                 return False
         return True
+
+    # def hasNoProtection(self, app, board):
+    #     assert(self.name == "king")
+    #     if 
+
+    def getColor(self):
+        if self.isWhite:
+            return "white"
+        else:
+            return "black"
+
+    def hasNoMoves(self, app, boardObj):
+        assert(self.name == "king")
+        self.legalMoves = self.getLegalMoves(boardObj.board)
+        legalMovesList = list(self.legalMoves)
+        counter = 0
+        
+        # removes each move that will still be in check
+        while counter < len(legalMovesList):
+            print("legalMovesList", legalMovesList)
+            (dr, dc) = legalMovesList[counter]
+            # psudomoving piece
+            oldRow, oldCol = self.row, self.col
+            newRow = oldRow+ dr
+            newCol = oldCol + dc
+            pieceTaken = boardObj.board[newRow][newCol]
+            boardObj.movePiece(app, self, self.row, self.col, newRow, newCol)
+            isChecking, colorChecking = boardObj.isCheck()
+            if isChecking and (colorChecking != (self.getColor() + "Checking")):
+                # bad move, so step back and undo move
+                boardObj.movePiece(app, self, newRow, newCol, oldRow, oldCol)
+                boardObj.board[newRow][newCol] = pieceTaken
+                legalMovesList.remove((dr,dc))
+                counter -= 1
+            counter += 1
+            
+        self.legalMoves = set(legalMovesList)
+        if len(self.legalMoves) == 0:
+            print("no more moves :((")
+            return True
+        else:
+            print("updated moves! could still move!")
+            return False
     
+    # king can't walk into a checking move
 
     def drawPiece(self, app, canvas):
         x0, y0, x1, y1 = getCellBounds(app, self.row, self.col)
