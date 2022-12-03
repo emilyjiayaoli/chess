@@ -23,7 +23,6 @@ class Piece:
         self.isCaptured = False
         self.leftEnPassant, self.rightEnPassant = False, False
 
-
         if self.name == "pawn":
             self.enPassant = set()
 
@@ -31,27 +30,34 @@ class Piece:
             self.canCastleLeft = False
             self.canCastleRight = False
             # self.alreadyCastled = False
+        else:
+            self.protectiveMoves = "not applicable"
 
     def getLegalMoves(self, board):
+        legalMoves = set()
         if self.name == "pawn":
-            return self.getPawnLegalMoves(board)
+            legalMoves = self.getPawnLegalMoves(board)
+            return legalMoves
         
         #returns a set of legal moves for bishop, queen, rook, king
-        legalMoves = set()
         for path in regularMoves[self.name]:
             for (drow, dcol) in path:
                 tempRow, tempCol = self.row + drow, self.col + dcol
                 # check in bounds
                 if 0 <= tempRow <= 7 and 0 <= tempCol <= 7:
-                    if board[tempRow][tempCol] == None:
+                    if board.board[tempRow][tempCol] == None:
                         legalMoves.add((drow, dcol))
                     else:
                         # check if different colors
-                        if board[tempRow][tempCol].isWhite != self.isWhite:
+                        if board.board[tempRow][tempCol].isWhite != self.isWhite:
                             legalMoves.add((drow, dcol)) #capture move
                         # current path is blocked by same colored piece
                         # move onto next path
                         break
+        if self.name == "king" and board.mode != "pseudo":
+            # adds castling move
+            castleMoves = self.getCastleMoves(board)
+            legalMoves = legalMoves.union(castleMoves)
         return legalMoves
 
     def getPawnLegalMoves(self, board):
@@ -61,10 +67,24 @@ class Piece:
             captureMoves = [(1, -1), (1, 1)]
 
             # basic pawn moves
-            if self.hasAnotherColoredPieceInFront(board):
+            if self.hasAnotherColoredPieceInFront(board, 1):
                 legalMoves.remove((1, 0))
-            elif self.isInitialPawnPosition(): # Double move at initial position
+            elif self.isInitialPawnPosition() and not self.hasAnotherColoredPieceInFront(board, 2): 
+                # Double move at initial position
                 legalMoves.add((2, 0))
+            
+            if self.row == 4: #could only enpassant on 4th row
+                if board.blackPawnMovedTwoStep:
+                    assert(board.blackPawnMovedTwoStepCol != None)
+                    if board.blackPawnMovedTwoStepCol - self.col == 1:
+                        legalMoves.add((1, 1)) #white right enpassant
+                        board.canEnPassant = True
+                    elif board.blackPawnMovedTwoStepCol - self.col == -1:
+                        legalMoves.add((1, -1)) #white left enpassant
+                        board.canEnPassant = True
+                # board.blackPawnMovedTwoStep = False
+                # board.blackPawnMovedTwoStepCol = None
+                
 
             #add in later
             # self.enPassant = self.getEnPassant(board)
@@ -79,12 +99,11 @@ class Piece:
             legalMoves = regularMoves["pawn_b"].copy() #set
             captureMoves = [(-1, -1), (-1, 1)]
             
-            #print(legalMoves)
-
              # basic pawn moves
-            if self.hasAnotherColoredPieceInFront(board):
+            if self.hasAnotherColoredPieceInFront(board, 1):
                 legalMoves.remove((-1, 0))
-            elif self.isInitialPawnPosition(): # Double move at initial position
+            elif self.isInitialPawnPosition() and not self.hasAnotherColoredPieceInFront(board, 2): 
+                # Double move at initial position
                 legalMoves.add((-2, 0))
             
             #add in later
@@ -95,26 +114,44 @@ class Piece:
             # if 'right' in self.enPassant:
             #     legalMoves.add((-1, 1))
             #     self.rightEnPassant = (-1, 1)
-        
+
+            if self.row == 3: #could only enpassant on 4th row
+                if board.whitePawnMovedTwoStep:
+                    #print("on third row and whitePawnMovedTwoStep")
+                    assert(board.whitePawnMovedTwoStepCol != None)
+                    if board.whitePawnMovedTwoStepCol - self.col == 1:
+                        legalMoves.add((-1, 1)) #black right enpassant
+                        board.canEnPassant = True
+                    elif board.whitePawnMovedTwoStepCol - self.col == -1:
+                        legalMoves.add((-1, -1)) #white left enpassant
+                        board.canEnPassant = True
+                # board.whitePawnMovedTwoStep = False
+                # board.whitePawnMovedTwoStepCol = None
+                
 
         for (drow, dcol) in captureMoves:
             tempRow, tempCol = self.row + drow, self.col + dcol
             if 0 <= tempRow <= 7 and 0 <= tempCol <= 7:
                 # add diagonal capture move if there are pieces
-                if board[tempRow][tempCol] != None \
-                    and board[tempRow][tempCol].isWhite != self.isWhite:
+                if board.board[tempRow][tempCol] != None \
+                    and board.board[tempRow][tempCol].isWhite != self.isWhite:
                     legalMoves.add((drow, dcol))
         return legalMoves
+
     
-    def hasAnotherColoredPieceInFront(self, board):
+    def hasAnotherColoredPieceInFront(self, board, steps):
         # returns True if pawn has another piece in front, False other
         if self.isWhite:
-            if board[self.row+1][self.col] != None:
+            if not (0 <= self.row+steps <= 7):
+                return True
+            if board.board[self.row+steps][self.col] != None:
                 return True
             else: 
                 return False
         else:
-            if board[self.row-1][self.col] != None:
+            if not (0 <= self.row-steps <= 7):
+                return True
+            if board.board[self.row-steps][self.col] != None:
                 return True
             else: 
                 return False
@@ -234,9 +271,9 @@ class Piece:
         else:
             return "black"
 
-    def addCastleMoves(self, board):
+    def getCastleMoves(self, board):
     # Helper function that adds castle moves to selected piece if it is castle-ble
-
+        moves = set()
         # checks if color can castle
         whiteTurn = self.isWhite
         if whiteTurn and not board.whiteAlreadyCastled and not board.whiteKingAlreadyMoved:
@@ -254,25 +291,21 @@ class Piece:
             if castleDir != set():
                 if self.isWhite:
                     if "left" in castleDir and not board.whiteLeftRookAlreadyMoved:
-                        self.legalMoves.add((0, -2))
+                        moves.add((0, -2))
                         self.canCastleLeft = True
                         #add castle left to legal moves, set piece.canCastleLeft = True 
-
                     if "right" in castleDir and not board.whiteRightRookAlreadyMoved:
-                        self.legalMoves.add((0, 2))
+                        moves.add((0, 2))
                         self.canCastleRight = True
-                        #add castle right to legal moves, set piece.canCastleRight = True
                 else:
                     if "left" in castleDir and not board.blackLeftRookAlreadyMoved:
-                        self.legalMoves.add((0, -2))
+                        moves.add((0, -2))
                         self.canCastleLeft = True
-                        #add castle left to legal moves, set piece.canCastleLeft = True 
-
                     if "right" in castleDir and not board.blackRightRookAlreadyMoved:
-                        self.legalMoves.add((0, 2))
+                        moves.add((0, 2))
                         self.canCastleRight = True
-                        #add castle right to legal moves, set piece.canCastleRight = True
-
+        return moves
+            
     def hasNoMoves(self, board):
         assert(self.name == "king")
         boardObj = copy.deepcopy(board)
@@ -282,16 +315,16 @@ class Piece:
         
         kingObjInitRow = self.row
         kingObjInitCol = self.col
-        print("king's init pos",kingObjInitRow, kingObjInitCol)
+        ##print("king's init pos",kingObjInitRow, kingObjInitCol)
 
         boardObj.getAllLegalMoves()
         legalMovesList = list(kingObj.legalMoves)
-        print("legalMovesList", legalMovesList)
+        ##print("legalMovesList", legalMovesList)
 
         counter = 0
-        print("king's (initial) legalmovelist (pieces.py)", legalMovesList)        
+        ##print("king's (initial) legalmovelist (pieces.py)", legalMovesList)        
         # removes each move that will still be in check
-        print(repr2dList(boardObj.board))
+        ##print(repr2dList(boardObj.board))
         while 0 <= counter < len(legalMovesList):
             (dr, dc) = legalMovesList[counter]
             oldRow, oldCol = kingObjInitRow, kingObjInitCol
@@ -300,110 +333,72 @@ class Piece:
             pieceTaken = copy.deepcopy(boardObj.board[newRow][newCol])
     
             boardObj.movePiece(kingObj, kingObj.row, kingObj.col, newRow, newCol)
-            print("= moved king to ", newRow, newCol)
-            print(repr2dList(boardObj.board))
+            #print("= moved king to ", newRow, newCol)
+            #print(repr2dList(boardObj.board))
 
             #isChecking, colorChecking = boardObj.isCheckNow()
             boardObj.isCheckNow()
             if boardObj.isCheck and (boardObj.colorChecking != (kingObj.getColor() + "Checking")):
-                print("== still in check by ",boardObj.devilPiece, boardObj.devilIsWhite," after move", (dr, dc), "from", oldRow, oldCol, "so going back..")
+                #print("== still in check by ",boardObj.devilPiece, boardObj.devilIsWhite," after move", (dr, dc), "from", oldRow, oldCol, "so going back..")
                 legalMovesList.remove((dr, dc))
-                print("=== removed invalid move from legalMoveList", (dr, dc))
+                #print("=== removed invalid move from legalMoveList", (dr, dc))
             else:
                 counter += 1
-                print("---- move valid!")    
+                #print("---- move valid!")    
 
              #restore
             boardObj.getAllLegalMoves()
-            print(boardObj.board[0][4])
+            #print(boardObj.board[0][4])
             #kingObj.legalMoves = kingObj.getLegalMoves(boardObj.board) #retrieves new king obj.legal moves at new position before moving back to old pos
-            print(kingObj.legalMoves, "kingObj cur row, col", kingObj.row, kingObj.col)
+            #print(kingObj.legalMoves, "kingObj cur row, col", kingObj.row, kingObj.col)
             status = boardObj.movePiece(kingObj, newRow, newCol, oldRow, oldCol)
             boardObj.board[newRow][newCol] = pieceTaken
-            print(status, "==== resetted - moved king back to original ", oldRow, oldCol, "onto next move!")
+            #print(status, "==== resetted - moved king back to original ", oldRow, oldCol, "onto next move!")
             
             
         legalMoves = set(legalMovesList)
-        print("king's old legalMoves", self.legalMoves)
+        #print("king's old legalMoves", self.legalMoves)
         self.legalMoves = legalMoves
-        print("king's new legalMoves", self.legalMoves, counter)
+        #print("king's new legalMoves", self.legalMoves, counter)
 
         if len(self.legalMoves) == 0:
-            print("no more moves :((")
+            #print("no more moves :((")
             return True, legalMoves
         else:
-            print("legalMoves not 0 yet, could still move!")
+            #print("legalMoves not 0 yet, could still move!")
             return False, legalMoves
 
-
-    def hasNoMovesV1(self, board):
+    def hasNoProtection(self, board):
+        # go through each same colored piece and play their set of legal moves,
+        #  set board to not check, play, if check afterwards, go back
         assert(self.name == "king")
-        boardObj = copy.deepcopy(board)
-        kingObj = copy.deepcopy(self)
+        for r in range(len(board.board)):
+            for c in range(len(board.board[0])):
+                piece = board.board[r][c]
+                if piece != None and piece.name != "king" and board.isWhiteDuringCheck() != piece.isWhite:
+                    if len(piece.protectiveMoves) != 0:
+                        return False
+        return True
 
-        #legalMoves = kingObj.getLegalMoves(boardObj.board)
-        #legalMoves = kingObj.legalMoves
-        legalMovesList = list(kingObj.legalMoves)
-        counter = 0
-        print("king's (initial) legalmovelist (pieces.py)", legalMovesList)        
-        # removes each move that will still be in check
-        while 0 <= counter < len(legalMovesList):
-            # print("king's legalMovesList", legalMovesList, "counter", counter)
-            (dr, dc) = legalMovesList[counter]
-            # psudomoving piece
-            oldRow, oldCol = kingObj.row, kingObj.col
-            newRow, newCol= oldRow + dr, oldCol + dc
-            
-            pieceTaken = copy.deepcopy(boardObj.board[newRow][newCol])
-    
-            boardObj.movePiece(kingObj, kingObj.row, kingObj.col, newRow, newCol)
-            print("= moved king to ", newRow, newCol)
-            # kingObj.row = newRow
-            # kingObj.col = newCol
+    def getLegalMovesDuringCheck(self, boardObj):
+        # returns the set of moves that protect the same colored king 
+        assert(self.name != "king")
 
-            isChecking, colorChecking = boardObj.isCheckNow()
-            #print(repr2dList(boardObj.board), colorChecking, "isChecking")
-            
-            if isChecking and (colorChecking != (kingObj.getColor() + "Checking")):
-
-                print("== king still in check after move", (dr, dc), "from", oldRow, oldCol, "so going back..")
-                # # bad move, so step back and undo move
-                # boardObj.movePiece(app, kingObj, newRow, newCol, oldRow, oldCol)
-                # boardObj.board[newRow][newCol] = pieceTaken
-                #assert(boardObj.board[newRow][newCol] == board.board[newRow][newCol])
-
-                legalMovesList.remove((dr, dc))
-                print("=== removed invalid move from legalMoveList", (dr, dc))
-
-            # elif not isChecking:
+        piece = boardObj.board[self.row][self.col] # get corresponding piece in copy of board
+        oldRow, oldCol = piece.row, piece.col
+        protectiveMoves = set()
+        for (drow, dcol) in self.legalMoves:
+            newRow, newCol = oldRow + drow, oldCol + dcol
+            boardObj.movePiece(piece, oldRow, oldCol, newRow, newCol)
+            if not boardObj.isCheck:
+                protectiveMoves.add((drow, dcol)) #add to objs in original board
             else:
-                counter += 1
-                print("---- move valid!")
+                self.isCheck = False
+            boardObj.movePiece(piece, newRow, newCol, oldRow, oldCol)
+        return protectiveMoves
 
-            boardObj.movePiece(kingObj, newRow, newCol, oldRow, oldCol)
+                     
 
-
-            # kingObj.row = oldRow
-            # kingObj.col = oldCol
-
-            boardObj.board[newRow][newCol] = pieceTaken
-                #assert(boardObj.board[newRow][newCol] == board.board[newRow][newCol])
-            #counter += 1
-            print("==== resetted - moved king back to original ", oldRow, oldCol, "onto next move!")
-            
-        legalMoves = set(legalMovesList)
-        print("king's old legalMoves", self.legalMoves)
-        self.legalMoves = legalMoves
-        print("king's new legalMoves", self.legalMoves)
-
-        print("king's legalMovesList", legalMovesList, "counter", counter)
-        if len(self.legalMoves) == 0:
-            print("no more moves :((")
-            return True, legalMoves
-        else:
-            print("updated moves! could still move!")
-            return False, legalMoves
-    
     # king can't walk into a checking move
 
     def drawPiece(self, app, canvas):
@@ -423,8 +418,17 @@ class Piece:
                 cx = x0 + abs(x1-x0)//2
                 cy = y0 + abs(y1-y0)//2
                 radius = 5
-                canvas.create_oval(cx-radius, cy-radius, cx+radius, cy+radius, fill = 'pink')
+                canvas.create_oval(cx-radius, cy-radius, cx+radius, cy+radius, fill = 'green')
                 #counter += 1
+            if self.name != "king" and isinstance(self.protectiveMoves, set):
+                print("self.protectiveMoves", self.protectiveMoves)
+                for (drow, dcol) in self.protectiveMoves:
+                #print(self.row+drow,  self.col+dcol)
+                    x0, y0, x1, y1 = getCellBounds(app, self.row+drow, self.col+dcol)
+                    cx = x0 + abs(x1-x0)//2
+                    cy = y0 + abs(y1-y0)//2
+                    radius = 5
+                    canvas.create_oval(cx-radius-5, cy-radius-5, cx+radius, cy+radius, fill = 'blue')
 
 regularMoves = {
     'rook':[[(1, 0), (2, 0), (3, 0), (4, 0), (5, 0), (6, 0), (7, 0)], #one path

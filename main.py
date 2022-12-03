@@ -14,8 +14,6 @@ def appStarted(app):
     app.board = Board(app) # initializes board
 
     app.x0, app.y0, app.x1, app.y1 = getBoardBounds(app) # for board
-    # print(app.width, app.height)
-    # print(app.x0, app.y0, app.x1, app.y1)
 
     app.isSelected = False
     app.selectedPiece = None
@@ -33,17 +31,20 @@ def getBoardBounds(app):
     y1 = lowerRight[3]
     return x0, y0, x1, y1
 
-def startScreen_redrawAll(app, canvas):
-    text = "Welcome to ChessAI"
-    canvas.create_text(app.width//2, app.height//2, text=text, font="Courier 35 bold")
-    text = "Press B to begin playing 2 Player Mode"
-    canvas.create_text(app.width//2, app.height//2 + 40, text=text)
+def main_keyPressed(app, event):
+    if (event.key == "r"):
+        appStarted(app)
 
+def main_timerFired(app):
+    app.board.getAllLegalMoves()
+    app.board.isCheckNow()
+    if app.board.isCheck:
+        if app.board.isPieceCheckmate():
+            app.isCheckmate = True
 
-def startScreen_keyPressed(app, event):
-    if (event.key == "b"):
-        app.mode = "main"
-
+    app.board.isCheckmate, winner = app.board.isCheckmateNow()
+    if app.board.isCheckmate:
+        print("Game Over!! Winner is", winner)
 
 def main_mousePressed(app, event):
 
@@ -90,7 +91,7 @@ def main_mousePressed(app, event):
             if (app.selectedPiece != None and app.hoverPiece == None) or\
                 (app.selectedPiece != None and app.hoverPiece.isWhite != app.selectedPiece.isWhite):
                 status = app.board.movePiece(app.selectedPiece, app.selectedPiece.row, app.selectedPiece.col, row, col)
-                print((app.selectedPiece.name, app.selectedPiece.row, app.selectedPiece.col, status))
+                #print((app.selectedPiece.name, app.selectedPiece.row, app.selectedPiece.col, status))
                 if status == 'success':
                     app.board.whiteTurn = not app.board.whiteTurn # flip turns after moving piece
 
@@ -105,72 +106,15 @@ def main_mousePressed(app, event):
                     
                     app.isSelected = False
                     app.selectedPiece = None
-                    print("board after move", repr2dList(app.board.board))
+                    #print("board after move", repr2dList(app.board.board))
 
-                    print(app.board.justMoved)
+                    #print(app.board.justMoved)
                     
                 # reset if failed to move piece (e.g target is not a valid move)
                 elif status == 'failure':
                     app.isSelected = False
                     app.selectedPiece = None
-        
-
-
-        #print("app.isSelected", app.isSelected)
-        #print("app.selectedPiece", app.selectedPiece)
-        #print(repr2dList(app.board.board))
-
-        # app.isCheckmate, winner = app.board.isCheckmate(app)
-        # if app.isCheckmate:
-        #     print("Game Over!!", winner)
-
-
-
-        
-# def updateKingAndRookStatus(app):
-#     # Helper function detects and updates if rooks and king have been moved
-#     if app.selectedPiece.isWhite:
-#         if app.selectedPiece.name == "king":
-#             app.whiteKingAlreadyMoved = True
-#         elif app.selectedPiece.name == "rook":
-#             if app.selectedPiece.col == 0:
-#                 app.whiteLeftRookAlreadyMoved = True
-#             elif app.selectedPiece.col == 7:
-#                 app.whiteRightRookAlreadyMoved = True
-#     else:
-#         if app.selectedPiece.name == "king":
-#             app.blackKingAlreadyMoved = True
-#         elif app.selectedPiece.name == "rook":
-#             if app.selectedPiece.col == 0:
-#                 app.blackLeftRookAlreadyMoved = True
-#             elif app.selectedPiece.col == 7:
-#                 app.blackRightRookAlreadyMoved = True
-
-def main_keyPressed(app, event):
-    if (event.key == "r"):
-        appStarted(app)
-
-def main_timerFired(app):
-    # app.board.isCheck, app.board.colorChecking = app.board.isCheckNow()
-
-    # if app.selectedPiece != None and app.selectedPiece.name == "king":
-    #     #app.selectedPiece.hasNoMoves(app.board)
-    #     print("king.legalMoves (main.py):", app.selectedPiece.legalMoves)
-
-    #     # Adds castle-ble moves if there are any
-    #     app.selectedPiece.addCastleMoves(app.board)
-    # # if app.board.isCheck:
-    # #     print("check!", app.board.colorChecking)
-
-    app.board.getAllLegalMoves()
-    app.board.isCheckNow()
-    if app.board.isCheck:
-        if app.board.isPieceCheckmate():
-            app.isCheckmate = True
-
-    app.board.isCheckmate, winner = app.board.isCheckmateNow()
-    if app.board.isCheckmate:
-        print("Game Over!! Winner is", winner)
+    
     
 def pawnPromotionSelection(app, x, y):
 
@@ -194,26 +138,16 @@ def getTurn(app):
     else:
         return "black"
 
+def startScreen_redrawAll(app, canvas):
+    text = "Welcome to ChessAI"
+    canvas.create_text(app.width//2, app.height//2, text=text, font="Courier 35 bold")
+    text = "Press B to begin playing 2 Player Mode"
+    canvas.create_text(app.width//2, app.height//2 + 40, text=text)
 
-# def drawButton(canvas, targetRectTuple, text, color="pink"):
-#     (x0, y0, x1, y1) = targetRectTuple
-#     canvas.create_rectangle(x0, y0, x1, y1, fill=color)
-#     canvas.create_text(x0+(abs(x1-x0)//2), y0+(abs(y1-y0)//2), text=text)
 
-# def getButtonPosition(centerX, centerY, width=40, height=20):
-#     return (centerX-width, centerY-height, centerX+width, centerY+height)
-
-# def isButtonClicked(event, targetRectTuple):
-#     (x0, y0, x1, y1) = targetRectTuple
-#     if x0 < event.x < x1 and y0 < event.y < y1:
-#         return True
-#     return False
-
-# def startScreen_mousePressed(app, event):
-#     # if isButtonClicked(event, app.fourTilesButton):
-#     #     app.mode = "main"
-#     #     app.colTileNum = 4
-#     pass
+def startScreen_keyPressed(app, event):
+    if (event.key == "b"):
+        app.mode = "main"
 
 def main_redrawAll(app, canvas):
     # color = rgbString(158, 68, 77)
