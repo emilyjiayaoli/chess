@@ -5,9 +5,10 @@ from pandas import *
 import copy
 
 class Board:
-    def __init__(self, app):
+    def __init__(self, app, name="reg"):
         self.rows = app.rows
         self.cols = app.cols
+        self.name = name
     
         self.board = self.setUpBoard(app) # initializes board
 
@@ -53,12 +54,14 @@ class Board:
         self.isCheck = False
         self.colorChecking = None
         self.isCheckmate = False
+        self.winner = None
 
         self.mode = "regular"
         self.devilPiece = "none"
         self.devilColor = "idk"
 
         self.justMoved = []
+
 
     def isWhiteDuringCheck(self):
         assert(self.isCheck == True)
@@ -72,25 +75,67 @@ class Board:
             for c in range(len(self.board[0])):
                 piece = self.board[r][c]
                 if piece != None:
-                    piece.legalMoves = piece.getLegalMoves(self)
-                    # if piece.name == "king" and self.mode != "pseudo":
-                        # get castling move
-                        #piece.getCastleMoves(self)
+                    if self.isCheck and self.mode != "pseudo":
+                        boardObj = copy.deepcopy(self)
+                        boardObj.name = "fake"
+                        #boardObj.isCheck = False # set is check back to false
+                        boardObj.mode = "pseudo"
+                        #print(self.mode, boardObj.mode)
+                        if piece.name != "king":
+                            if self.colorChecking == "whiteChecking":
+                                if not piece.isWhite:
+                                    pieceInBoardObj = boardObj.board[r][c]
+                                    #piece.protectiveMoves = piece.getLegalMovesDuringCheck(boardObj)
+                                    fullMoves = piece.legalMoves
+                                    protectionMoves = piece.getLegalMovesDuringCheck(boardObj, fullMoves)
+                                    piece.legalMoves = protectionMoves
+                                    #pieceInBoardObj.legalMoves = protectionMoves
 
-                    # if self.isCheck:# :and self.mode != "pseudo":
-                    #     boardObj = copy.deepcopy(self)
-                    #     boardObj.isCheck = False # set is check back to false
-                    #     boardObj.mode = "pseudo"
-                    #     if piece.name != "king":
-                    #         if self.colorChecking == "whiteChecking":
-                    #             if piece.isWhite:
-                    #                 piece.protectiveMoves = piece.getLegalMovesDuringCheck(boardObj)
-                    #         elif self.colorChecking == "blackChecking":
-                    #             if not piece.isWhite:
-                    #                 piece.protectiveMoves = piece.getLegalMovesDuringCheck(boardObj)
-                    #         else:
-                    #             raise AssertionError("self.colorChecking is neither white or black")
-    
+                            elif self.colorChecking == "blackChecking":
+                                if piece.isWhite:
+                                    pieceInBoardObj = boardObj.board[r][c]
+                                    #piece.protectiveMoves = piece.getLegalMovesDuringCheck(boardObj)
+                                    fullMoves = piece.legalMoves
+                                    protectionMoves = piece.getLegalMovesDuringCheck(boardObj, fullMoves)
+                                    piece.legalMoves = protectionMoves
+                                    #pieceInBoardObj.legalMoves = protectionMoves
+                            else:
+                                raise AssertionError("self.colorChecking is neither white or black")
+                        else: #king in check
+                            if self.mode == "pseudo":
+                                piece.legalMoves = piece.getLegalMoves(self)
+                            else:
+                                piece.legalMoves = piece.getLegalMoves(self)
+                        del boardObj
+                    else:
+                        #if not self.isCheck and self.mode == "pseudo":
+                            #self.mode = "regular"
+                        if not self.isCheck and self.mode == "regular":
+                            print("not check, reg", self.name)
+                        elif not self.isCheck and self.mode == "pseudo":
+                            print("not check, psuedo", self.name)
+
+                            #self.mode = "regular"
+                        piece.legalMoves = piece.getLegalMoves(self)
+                            # if piece.name == "bishop" and not piece.isWhite:
+                            #     print(self.mode, "legal moves for bishop", "before:", lm, "after:", piece.legalMoves)
+                    # elif not self.isCheck and not self.mode != "pseudo":
+                    #     #if boardObj.mode == "pseudo":
+                    #         lm = piece.legalMoves
+                    #         piece.legalMoves = piece.getLegalMoves(self)
+                    #         if piece.name == "bishop" and not piece.isWhite:
+                    #             print("legal moves for bishop", "before:", lm, "after:", piece.legalMoves)
+                         
+                    #         # if piece.name == "knight":
+                    #         #     print("legal moves for knight", "before:", lm, "after:", piece.legalMoves)
+                    # elif not self.isCheck and self.mode == "pseudo":
+                    #     #if boardObj.mode == "pseudo":
+                    #         lm = piece.legalMoves
+                    #         piece.legalMoves = piece.getLegalMoves(self)
+                    #         if piece.name == "bishop" and not piece.isWhite:
+                    #             print("legal moves for bishop", "before:", lm, "after:", piece.legalMoves)
+                    # raise AssertionError("sdlfkjsd")
+
                         
     def isCheckNow(self):
         # iterates through board to check if any piece is currently checking the opposite color king
@@ -104,15 +149,19 @@ class Board:
                         existsOneCheck = True
                         if piece.isWhite:
                             self.colorChecking = "whiteChecking"
-                            print("whiteChecking")
+                            #print("whiteChecking")
                         else:
                             self.colorChecking = "blackChecking"
-                            print("blackChecking")
+                            #print("blackChecking")
         if existsOneCheck:
             self.isCheck = True
+            return True
         else:
+            #if self.mode == "pseudo": print(repr2dList(self.board))
             self.isCheck = False
-    
+            return False
+
+
     def isPieceCheck(self, piece):
         # returns True if piece's move to the king is in the set of legalMoves
         isWhite = not piece.isWhite
@@ -122,11 +171,18 @@ class Board:
         dRowToKing = kingRow - piece.row
         dColToKing = kingCol - piece.col
 
+        #print("White queen shop", (dRowToKing, dColToKing), piece.legalMoves)
+        # if piece.name == "bishop" and not piece.isWhite:
+        #     print("White bishop", (dRowToKing, dColToKing), piece.legalMoves)
         if (dRowToKing, dColToKing) in piece.legalMoves:
             self.devilPiece = piece.name
             self.devilIsWhite = piece.isWhite
+            #print("black bishop", (dRowToKing, dColToKing), " in ",piece.legalMoves)
             return True
+            
         else:
+            #if piece.name == "bishop" and not piece.isWhite:
+                #print("black bishop", (dRowToKing, dColToKing), "not in ",piece.legalMoves)
             return False
 
     def isPieceCheckmate(self):
@@ -135,14 +191,16 @@ class Board:
             hasNoMoves, kingLegalMoves = kingPiece.hasNoMoves(self)
             hasNoProtection = kingPiece.hasNoProtection(self)
             if hasNoMoves and hasNoProtection:
-                print("whiteWon")
+                #print("whiteWon")
+                self.winner = "white"
                 return True
         elif self.colorChecking == "blackChecking":
             kingPiece = self.getKingPiece(isWhite=True)
             hasNoMoves, kingLegalMoves = kingPiece.hasNoMoves(self)
             hasNoProtection = kingPiece.hasNoProtection(self)
             if hasNoMoves and hasNoProtection:
-                print("blackWon")
+                #print("blackWon")
+                self.winner = "black"
                 return True
         return False
 
@@ -379,14 +437,16 @@ class Board:
         if self.isCheck:
             if self.colorChecking == "whiteChecking":
                 kingPiece = self.getKingPiece(isWhite=False)
-                hasMoves, kingLegalMoves = kingPiece.hasNoMoves(self)
-                if hasMoves:
+                hasNoMoves, kingLegalMoves = kingPiece.hasNoMoves(self)
+                hasNoProtection = kingPiece.hasNoProtection(self)
+                if hasNoMoves and hasNoProtection:
                     print("whiteWon")
                     return True, "whiteWon"
             elif self.colorChecking == "blackChecking":
                 kingPiece = self.getKingPiece(isWhite=True)
-                hasMoves, kingLegalMoves = kingPiece.hasNoMoves(self)
-                if hasMoves:
+                hasNoMoves, kingLegalMoves = kingPiece.hasNoMoves(self)
+                hasNoProtection = kingPiece.hasNoProtection(self)
+                if hasNoMoves and hasNoProtection:
                     print("blackWon")
                     return True, "blackWon"
 

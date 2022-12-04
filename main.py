@@ -18,6 +18,8 @@ def appStarted(app):
     app.isSelected = False
     app.selectedPiece = None
     app.hoverPiece = None
+    app.winner = None
+    #app.isCheckmate = False
 
 def getBoardBounds(app):
     # returns cell bounds of the playable region
@@ -41,10 +43,14 @@ def main_timerFired(app):
     if app.board.isCheck:
         if app.board.isPieceCheckmate():
             app.isCheckmate = True
+            app.winner = app.board.winner
+    else:
+        app.board.mode = "regular"
 
     app.board.isCheckmate, winner = app.board.isCheckmateNow()
-    if app.board.isCheckmate:
-        print("Game Over!! Winner is", winner)
+    # if app.board.isCheckmate:
+    #     app.isCheckmate = True
+    #     print("Game Over!! Winner is", winner)
 
 def main_mousePressed(app, event):
 
@@ -156,8 +162,13 @@ def main_redrawAll(app, canvas):
     app.board.drawBoard(app, canvas)
     canvas.create_text(7*app.width//8 , 7*app.height//8, text=f"Turn: {getTurn(app)}", font="Courier 16 bold")
 
-    if app.board.isCheck:
+
+    if app.board.isCheckmate:
+        canvas.create_text(7*app.width//8 , 5*app.height//8, text=f"Checkmate!", font="Courier 16 bold")
+        canvas.create_text(7*app.width//8 , 5.5*app.height//8, text=f"Winner is {app.winner}", font="Courier 16 bold")
+    elif app.board.isCheck:
         canvas.create_text(7*app.width//8 , 6*app.height//8, text=f"Check!", font="Courier 16 bold")
+
     
     canvas.create_text(7*app.width//8 , 7.8*app.height//8, text=f"Press r to restart game", font="Courie 14")
     

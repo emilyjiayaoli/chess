@@ -82,18 +82,6 @@ class Piece:
                     elif board.blackPawnMovedTwoStepCol - self.col == -1:
                         legalMoves.add((1, -1)) #white left enpassant
                         board.canEnPassant = True
-                # board.blackPawnMovedTwoStep = False
-                # board.blackPawnMovedTwoStepCol = None
-                
-
-            #add in later
-            # self.enPassant = self.getEnPassant(board)
-            # if 'left' in self.enPassant:
-            #     legalMoves.add((1, -1))
-            #     self.leftEnPassant = (1, -1)
-            # if 'right' in self.enPassant:
-            #     legalMoves.add((1, 1))
-            #     self.rightEnPassant = (1, 1)
                 
         else:
             legalMoves = regularMoves["pawn_b"].copy() #set
@@ -106,15 +94,6 @@ class Piece:
                 # Double move at initial position
                 legalMoves.add((-2, 0))
             
-            #add in later
-            # self.enPassant = self.getEnPassant(board)
-            # if 'left' in self.enPassant:
-            #     legalMoves.add((-1, -1))
-            #     self.leftEnPassant = (-1, -1)
-            # if 'right' in self.enPassant:
-            #     legalMoves.add((-1, 1))
-            #     self.rightEnPassant = (-1, 1)
-
             if self.row == 3: #could only enpassant on 4th row
                 if board.whitePawnMovedTwoStep:
                     #print("on third row and whitePawnMovedTwoStep")
@@ -125,9 +104,6 @@ class Piece:
                     elif board.whitePawnMovedTwoStepCol - self.col == -1:
                         legalMoves.add((-1, -1)) #white left enpassant
                         board.canEnPassant = True
-                # board.whitePawnMovedTwoStep = False
-                # board.whitePawnMovedTwoStepCol = None
-                
 
         for (drow, dcol) in captureMoves:
             tempRow, tempCol = self.row + drow, self.col + dcol
@@ -376,25 +352,31 @@ class Piece:
             for c in range(len(board.board[0])):
                 piece = board.board[r][c]
                 if piece != None and piece.name != "king" and board.isWhiteDuringCheck() != piece.isWhite:
-                    if len(piece.protectiveMoves) != 0:
+                    if len(piece.legalMoves) != 0:
                         return False
         return True
 
-    def getLegalMovesDuringCheck(self, boardObj):
+    def getLegalMovesDuringCheck(self, boardObj, fullMoves):
         # returns the set of moves that protect the same colored king 
         assert(self.name != "king")
-
         piece = boardObj.board[self.row][self.col] # get corresponding piece in copy of board
         oldRow, oldCol = piece.row, piece.col
         protectiveMoves = set()
-        for (drow, dcol) in self.legalMoves:
+        #print(fullMoves)
+        for (drow, dcol) in fullMoves:
+            #print("before moving", piece.name, oldRow, oldCol,repr2dList(boardObj.board))
             newRow, newCol = oldRow + drow, oldCol + dcol
-            boardObj.movePiece(piece, oldRow, oldCol, newRow, newCol)
-            if not boardObj.isCheck:
+            status = boardObj.movePiece(piece, oldRow, oldCol, newRow, newCol)
+            #print(status)
+            boardObj.getAllLegalMoves()
+            #print(status, "after", repr2dList(boardObj.board))
+            if not boardObj.isCheckNow():
                 protectiveMoves.add((drow, dcol)) #add to objs in original board
             else:
-                self.isCheck = False
+                #print("still is check")
+                boardObj.isCheck = False
             boardObj.movePiece(piece, newRow, newCol, oldRow, oldCol)
+        #print(piece.isWhite, piece.name, "fullMoves",fullMoves, "protectiveMoves", protectiveMoves)
         return protectiveMoves
 
                      
@@ -421,7 +403,7 @@ class Piece:
                 canvas.create_oval(cx-radius, cy-radius, cx+radius, cy+radius, fill = 'green')
                 #counter += 1
             if self.name != "king" and isinstance(self.protectiveMoves, set):
-                print("self.protectiveMoves", self.protectiveMoves)
+                #print("self.protectiveMoves", self.protectiveMoves)
                 for (drow, dcol) in self.protectiveMoves:
                 #print(self.row+drow,  self.col+dcol)
                     x0, y0, x1, y1 = getCellBounds(app, self.row+drow, self.col+dcol)
