@@ -1,4 +1,4 @@
-*Welcome to Chess*
+# Welcome to Chess
 
 Play chess in 2 player mode. Features include Check/Checkmate detection, En Passant, and Pawn Promotion.
 
