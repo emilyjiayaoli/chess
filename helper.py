@@ -5,6 +5,7 @@ def pointInGrid(app, x, y):
     return ((app.margin <= x <= app.width-app.margin) and
             (app.margin <= y <= app.height-app.margin))
                  
+#copied from https://www.cs.cmu.edu/~112/notes/notes-animations-part2.html
 def getCell(app, x, y):
     # aka "viewToModel"
     # return (row, col) in which (x, y) occurred or (-1, -1) if outside grid.
@@ -23,6 +24,7 @@ def getCell(app, x, y):
 
     return (row, col)
 
+#copied from https://www.cs.cmu.edu/~112/notes/notes-animations-part2.html
 def getCellBounds(app, row, col):
     # aka "modelToView"
     # returns (x0, y0, x1, y1) corners/bounding box of given cell in grid

@@ -1,8 +1,6 @@
 from cmu_112_graphics import *
 from pieces import *
 from board import *
-import time
-import copy
 
 def appStarted(app):
     app.mode = "startScreen"
@@ -38,22 +36,21 @@ def main_keyPressed(app, event):
         appStarted(app)
 
 def main_timerFired(app):
-    app.board.getAllLegalMoves()
-    app.board.isCheckNow()
-    if app.board.isCheck:
-        if app.board.isPieceCheckmate():
+    if not app.board.isCheck:
+        app.board.getAllLegalMovesRegular()
+
+    else:
+        app.board.getAllLegalMovesDurCheck()
+
+        isCheckMate = app.board.isCheckmateNow()
+        if isCheckMate:
             app.isCheckmate = True
             app.winner = app.board.winner
-    else:
-        app.board.mode = "regular"
-
-    app.board.isCheckmate, winner = app.board.isCheckmateNow()
-    # if app.board.isCheckmate:
-    #     app.isCheckmate = True
-    #     print("Game Over!! Winner is", winner)
+            print("winner is", app.winner)
+    app.board.updateIsCheck()
+    
 
 def main_mousePressed(app, event):
-
     # Pawn promotion
     if app.board.isPawnPromoNow and (app.board.curPawnProm != None):
             newPieceName = pawnPromotionSelection(app, event.x, event.y)
@@ -70,16 +67,6 @@ def main_mousePressed(app, event):
             if app.hoverPiece != None and (app.hoverPiece.isWhite == app.board.whiteTurn): #select something if turn
                 app.isSelected = True
                 app.selectedPiece = app.hoverPiece
-
-                # app.selectedPiece.legalMoves = app.selectedPiece.getLegalMoves(app.board.board)
-                
-                #if app.selectedPiece.name == "king":
-                    
-                #     app.selectedPiece.hasNoMoves(app.board)
-                #     print("king.legalMoves (main.py):", app.selectedPiece.legalMoves)
-
-                #     # Adds castle-ble moves if there are any
-                #     app.selectedPiece.addCastleMoves(app.board)
 
                 # if no valid moves, reset to not clicked
                 if len(app.selectedPiece.legalMoves) == 0:
@@ -145,7 +132,7 @@ def getTurn(app):
         return "black"
 
 def startScreen_redrawAll(app, canvas):
-    text = "Welcome to ChessAI"
+    text = "Welcome to Chess"
     canvas.create_text(app.width//2, app.height//2, text=text, font="Courier 35 bold")
     text = "Press B to begin playing 2 Player Mode"
     canvas.create_text(app.width//2, app.height//2 + 40, text=text)
@@ -156,9 +143,6 @@ def startScreen_keyPressed(app, event):
         app.mode = "main"
 
 def main_redrawAll(app, canvas):
-    # color = rgbString(158, 68, 77)
-    # # 158, 68, 77
-    # canvas.create_rectangle(0, 0, app.width, app.height, fill=color)
     app.board.drawBoard(app, canvas)
     canvas.create_text(7*app.width//8 , 7*app.height//8, text=f"Turn: {getTurn(app)}", font="Courier 16 bold")
 
@@ -191,7 +175,5 @@ def main_redrawAll(app, canvas):
 
         canvas.create_rectangle(center-buttonWidth, 280-buttonHeight, center+buttonWidth, 280+buttonHeight, fill="pink")
         canvas.create_text(center, 280, text="knight")
-        # canvas.create_rectangle(app.width//2, app.rectangle//2)
-        # canvas
 
 runApp(width=940, height=680) # quit still runs next one, exit does not
