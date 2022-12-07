@@ -13,13 +13,21 @@ def appStarted(app):
 
     app.x0, app.y0, app.x1, app.y1 = getBoardBounds(app) # for board
 
+    # main board attributes
     app.isSelected = False
     app.selectedPiece = None
     app.hoverPiece = None
     app.winner = None
 
+    # Image
     app.imagePath = './homescreen.png'
     app.entireImage = app.scaleImage(app.loadImage(app.imagePath), 2/5)
+    app.instructionsImgPath = './instructions.png'
+    app.instructionsImg = app.scaleImage(app.loadImage(app.instructionsImgPath), 3.5/10)
+
+    # color for graphics
+    app.color1 = rgbString(238, 240, 245)
+    app.color2 = rgbString(146, 182, 232)
     
 
 def getBoardBounds(app):
@@ -37,6 +45,8 @@ def getBoardBounds(app):
 def main_keyPressed(app, event):
     if (event.key == "r"):
         appStarted(app)
+    if (event.key == "i"):
+        app.mode = "instructionsScreen"
 
 def main_timerFired(app):
     if not app.board.isCheck:
@@ -52,7 +62,6 @@ def main_timerFired(app):
             print("winner is", app.winner)
     app.board.updateIsCheck()
     
-
 def main_mousePressed(app, event):
     # Pawn promotion
     if app.board.isPawnPromoNow and (app.board.curPawnProm != None):
@@ -102,10 +111,7 @@ def main_mousePressed(app, event):
                     
                     app.isSelected = False
                     app.selectedPiece = None
-                    #print("board after move", repr2dList(app.board.board))
 
-                    #print(app.board.justMoved)
-                    
                 # reset if failed to move piece (e.g target is not a valid move)
                 elif status == 'failure':
                     app.isSelected = False
@@ -129,6 +135,7 @@ def pawnPromotionSelection(app, x, y):
     return None
 
 def getTurn(app):
+    # Retrieves the turn of the current board, returns "white" or "black"
     if app.board.whiteTurn:
         return "white"
     else:
@@ -136,48 +143,70 @@ def getTurn(app):
 
 def startScreen_redrawAll(app, canvas):
     canvas.create_image(app.width//2, app.height//2, image=ImageTk.PhotoImage(app.entireImage))
-    text = "Welcome to Chess"
+    # text = "Welcome to Chess"
     #canvas.create_text(app.width//2, app.height//2, text=text, font="Courier 35 bold")
-    text = "Press B to begin playing 2 Player Mode"
-    canvas.create_text(app.width//2, app.height*4.3//5 + 40, text=text)
+    text = "Press 'b' to play"
+    canvas.create_text(app.width//2, app.height*4.3//5 + 40, text=text, font="Courier 15")
+
+    text = "Press 'i' for instructions"
+    canvas.create_text(app.width//2, app.height*4.45//5 + 40, text=text, font="Courier 15")
 
 
 def startScreen_keyPressed(app, event):
+    # Switch to the main screen if beginning the game
     if (event.key == "b"):
         app.mode = "main"
+    if (event.key == "i"):
+        app.mode = "instructionsScreen"
+
+def instructionsScreen_redrawAll(app, canvas):
+    canvas.create_image(app.width//2, app.height//2, image=ImageTk.PhotoImage(app.instructionsImg))
+    text = "Instructions"
+    canvas.create_text(app.width//2, app.height*0.84//7, text=text, font="Courier 21 bold")
+    text = "Press 'b' to begin playing 2 Player Mode"
+    canvas.create_text(app.width//2, app.height*4.3//5 + 40, text=text, font="Courier 15")
+
+def instructionsScreen_keyPressed(app, event):
+    # Switch to the main screen if beginning the game
+    if (event.key == "b"):
+        app.mode = "main"
+    if (event.key == "r"):
+        app.mode = "startScreen"
 
 def main_redrawAll(app, canvas):
+    # Viewer function for the main screen
     app.board.drawBoard(app, canvas)
-    canvas.create_text(7*app.width//8 , 7*app.height//8, text=f"Turn: {getTurn(app)}", font="Courier 16 bold")
+    canvas.create_text(7*app.width//8 , 7*app.height//8, text=f"Turn: {getTurn(app)}", font="Courier 20 bold")
 
 
     if app.board.isCheckmate:
-        canvas.create_text(7*app.width//8 , 5*app.height//8, text=f"Checkmate!", font="Courier 16 bold")
-        canvas.create_text(7*app.width//8 , 5.5*app.height//8, text=f"Winner is {app.winner}", font="Courier 16 bold")
+        canvas.create_text(7*app.width//8 , 5*app.height//8, text=f"Checkmate!", font="Courier 17 bold")
+        canvas.create_text(7*app.width//8 , 5.5*app.height//8, text=f"Winner is {app.winner}", font="Courier 17 bold")
     elif app.board.isCheck:
-        canvas.create_text(7*app.width//8 , 6*app.height//8, text=f"Check!", font="Courier 16 bold")
+        canvas.create_text(7*app.width//8 , 6*app.height//8, text=f"Check!", font="Courier 17 bold")
 
     
-    canvas.create_text(7*app.width//8 , 7.8*app.height//8, text=f"Press r to restart game", font="Courie 14")
+    canvas.create_text(7*app.width//8 , 7.6*app.height//8, text=f"Press 'i' for instructions", font="Courier 14")
+    canvas.create_text(7*app.width//8 , 7.8*app.height//8, text=f"Press 'r' to restart game", font="Courier 14")
     
     
     if app.board.isPawnPromoNow:
         center = app.rightMargin//2 + (app.x1)
         buttonWidth = 60
         buttonHeight = 15
-        canvas.create_text(center, 100, text="Pawn Promotion")
-        canvas.create_text(center, 120, text="Choose Piece:")
+        canvas.create_text(center, 100, font="Courier 14", text="Pawn Promotion")
+        canvas.create_text(center, 120, font="Courier 14", text="Choose Piece:")
         
-        canvas.create_rectangle(center-buttonWidth, 160-buttonHeight, center+buttonWidth, 160+buttonHeight, fill="pink")
-        canvas.create_text(center, 160, text="queen")
+        canvas.create_rectangle(center-buttonWidth, 160-buttonHeight, center+buttonWidth, 160+buttonHeight, fill=app.color1)
+        canvas.create_text(center, 160, font="Courier", text="queen")
 
-        canvas.create_rectangle(center-buttonWidth, 200-buttonHeight, center+buttonWidth, 200+buttonHeight, fill="pink")
-        canvas.create_text(center, 200, text="rook")
+        canvas.create_rectangle(center-buttonWidth, 200-buttonHeight, center+buttonWidth, 200+buttonHeight, fill=app.color1)
+        canvas.create_text(center, 200, font="Courier", text="rook")
 
-        canvas.create_rectangle(center-buttonWidth, 240-buttonHeight, center+buttonWidth, 240+buttonHeight, fill="pink")
-        canvas.create_text(center, 240, text="bishop")
+        canvas.create_rectangle(center-buttonWidth, 240-buttonHeight, center+buttonWidth, 240+buttonHeight, fill=app.color1)
+        canvas.create_text(center, 240, font="Courier", text="bishop")
 
-        canvas.create_rectangle(center-buttonWidth, 280-buttonHeight, center+buttonWidth, 280+buttonHeight, fill="pink")
-        canvas.create_text(center, 280, text="knight")
+        canvas.create_rectangle(center-buttonWidth, 280-buttonHeight, center+buttonWidth, 280+buttonHeight, fill=app.color1)
+        canvas.create_text(center, 280, font="Courier", text="knight")
 
 runApp(width=940, height=680) # quit still runs next one, exit does not

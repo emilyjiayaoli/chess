@@ -413,14 +413,15 @@ class Piece:
                 cx = x0 + abs(x1-x0)//2
                 cy = y0 + abs(y1-y0)//2
                 radius = 5
-                canvas.create_oval(cx-radius, cy-radius, cx+radius, cy+radius, fill = 'blue')
+                color = rgbString(53, 86, 133)
+                canvas.create_oval(cx-radius, cy-radius, cx+radius, cy+radius, fill = color)
             if self.name != "king" and isinstance(self.protectiveMoves, set):
                 for (drow, dcol) in self.protectiveMoves:
                     x0, y0, x1, y1 = getCellBounds(app, self.row+drow, self.col+dcol)
                     cx = x0 + abs(x1-x0)//2
                     cy = y0 + abs(y1-y0)//2
                     radius = 5
-                    canvas.create_oval(cx-radius-5, cy-radius-5, cx+radius, cy+radius, fill = 'blue')
+                    canvas.create_oval(cx-radius-5, cy-radius-5, cx+radius, cy+radius, fill = color)
 
 # Stores all the possible moves various pieces could make
 regularMoves = {

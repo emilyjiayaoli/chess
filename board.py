@@ -13,7 +13,9 @@ class Board:
         self.board = self.setUpBoard(app) 
 
         self.color1 = rgbString(238, 240, 245)
-        self.color2 = rgbString(99, 149, 255)
+        self.color2 = rgbString(146, 182, 232)
+        
+        #self.color2 = rgbString(99, 149, 255)
 
         self.w_king = self.getKingPiece(isWhite=True)
         self.b_king = self.getKingPiece(isWhite=False)
