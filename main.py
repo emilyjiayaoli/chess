@@ -17,7 +17,10 @@ def appStarted(app):
     app.selectedPiece = None
     app.hoverPiece = None
     app.winner = None
-    #app.isCheckmate = False
+
+    app.imagePath = './homescreen.png'
+    app.entireImage = app.scaleImage(app.loadImage(app.imagePath), 2/5)
+    
 
 def getBoardBounds(app):
     # returns cell bounds of the playable region
@@ -132,10 +135,11 @@ def getTurn(app):
         return "black"
 
 def startScreen_redrawAll(app, canvas):
+    canvas.create_image(app.width//2, app.height//2, image=ImageTk.PhotoImage(app.entireImage))
     text = "Welcome to Chess"
-    canvas.create_text(app.width//2, app.height//2, text=text, font="Courier 35 bold")
+    #canvas.create_text(app.width//2, app.height//2, text=text, font="Courier 35 bold")
     text = "Press B to begin playing 2 Player Mode"
-    canvas.create_text(app.width//2, app.height//2 + 40, text=text)
+    canvas.create_text(app.width//2, app.height*4.3//5 + 40, text=text)
 
 
 def startScreen_keyPressed(app, event):

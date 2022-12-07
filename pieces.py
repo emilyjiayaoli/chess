@@ -6,7 +6,7 @@ class Piece:
     def __init__(self, app, name, isWhite, row, col):
         self.name = name
         self.isWhite = isWhite
-        
+
         self.row = row
         self.col = col
 
@@ -398,13 +398,14 @@ class Piece:
 
 
     def drawPiece(self, app, canvas):
+        # View function that draws each piece
         x0, y0, x1, y1 = getCellBounds(app, self.row, self.col)
         cx = (x1+x0)//2
         cy = (y1+y0)//2
         canvas.create_image(cx, cy, image=ImageTk.PhotoImage(self.image))
 
     def drawHint(self, app, canvas):
-        
+        # View function that draws hints for each piece
         if self.name == app.selectedPiece.name and self.showLegalMoves and isinstance(self.legalMoves, set):
             for (drow, dcol) in self.legalMoves:
                 #print(self.row+drow,  self.col+dcol)
