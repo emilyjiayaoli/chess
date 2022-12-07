@@ -257,9 +257,9 @@ class Piece:
         # Returns the appropriate moves during check by simulating all the future legal moves
 
         legalMoves = set()
-        origLegalMoves = self.getLegalMoves(board)
+        origLegalMoves = self.getLegalMoves(board) # retrieve baseline legalMoves
 
-        # Simulates future legal moves creating a copy of board
+        # Simulates future legal moves creating a copy of board, named "pseudo"
         boardObj = copy.deepcopy(board)
         boardObj.mode = "pseudo"
         boardObj.isCheck = False
@@ -285,36 +285,33 @@ class Piece:
             infoAbtCheckPiece = boardObj.updateIsCheck()
 
             if not boardObj.isCheck:
-                legalMoves.add((dr, dc)) # since new position is not in check, good to add to legalMoves
-                 # switch back to false, not adding into legalmoves
-    
+                legalMoves.add((dr, dc)) # since new position is not in check, add to legalMoves
+            
+            
+             # switch check back to false, not adding into legalmoves
             boardObj.isCheck = False
             
             moves = pieceObj.getLegalMoves(boardObj)
             # move back to original position to try the next move
             status2 = boardObj.movePiece(pieceObj, pieceObjNewRow, pieceObjNewCol, pieceObjInitRow, pieceObjInitCol, defaultLegalMoves=moves)
 
-        # good place to check if there are moves in legalMoves that lead to check, answer should be no
-
         #if self.isWhite: print(legalMoves, self.isWhite, " finished ")
         return legalMoves 
 
 
-
     def getKingMoves(self, board, isCheck):
         legalMoves = set()
-        origLegalMoves = self.getLegalMoves(board) #retrieve baseline legalMoves
+        origLegalMoves = self.getLegalMoves(board) # retrieve baseline legalMoves
         
-        #consistent until here 
-
         boardObj = copy.deepcopy(board)
         boardObj.mode = "pseudo"
         boardObj.isCheck = False
         kingObj = boardObj.board[self.row][self.col] # right unless self.row, col are incorrect
         kingObjInitRow, kingObjInitCol = self.row, self.col # will always return to this pos
-        #if self.isWhite: print("starting ", self.isWhite, "with", origLegalMoves)
-        #if self.isWhite: print(repr2dList(boardObj.board))
+
+        # Iterates through king's possible legal moves
         for (dr, dc) in origLegalMoves:
+
             # try moves
             kingObjNewRow, kingObjNewCol = kingObjInitRow + dr, kingObjInitCol + dc #calc pos to move to
             
@@ -329,6 +326,7 @@ class Piece:
             if not boardObj.isCheck:
                 legalMoves.add((dr, dc)) # since new position is not in check, good to add to legalMoves
                  # switch back to false, not adding into legalmoves
+
             boardObj.isCheck = False
             
             moves = kingObj.getLegalMoves(boardObj)
@@ -354,11 +352,13 @@ class Piece:
         for path in regularMoves[self.name]:
             for (drow, dcol) in path:
                 tempRow, tempCol = self.row + drow, self.col + dcol
+
                 # check in bounds
                 if 0 <= tempRow <= 7 and 0 <= tempCol <= 7:
                     if board.board[tempRow][tempCol] == None:
                         legalMoves.add((drow, dcol))
                     else:
+
                         # check if different colors
                         if board.board[tempRow][tempCol].isWhite != self.isWhite:
                             legalMoves.add((drow, dcol)) #capture move
@@ -370,16 +370,17 @@ class Piece:
 
     def getLegalMovesDuringCheck(self, boardObj, fullMoves):
         # returns the set of moves that protect the same colored king 
+
         assert(self.name != "king")
         piece = boardObj.board[self.row][self.col] # get corresponding piece in copy of board
         oldRow, oldCol = piece.row, piece.col
         protectiveMoves = set()
-        #print(fullMoves)
+
         for (drow, dcol) in fullMoves:
+
             #print("before moving", piece.name, oldRow, oldCol,repr2dList(boardObj.board))
             newRow, newCol = oldRow + drow, oldCol + dcol
             status = boardObj.movePiece(piece, oldRow, oldCol, newRow, newCol)
-            #print(status)
             boardObj.getAllLegalMoves()
             # boardObj.getAllLegalMovesInPseudo()
             #print(status, "after", repr2dList(boardObj.board))
@@ -416,6 +417,7 @@ class Piece:
                     radius = 5
                     canvas.create_oval(cx-radius-5, cy-radius-5, cx+radius, cy+radius, fill = 'blue')
 
+# Stores all the possible moves various pieces could make
 regularMoves = {
     'rook':[[(1, 0), (2, 0), (3, 0), (4, 0), (5, 0), (6, 0), (7, 0)], #one path
             [(-1, 0), (-2, 0), (-3, 0), (-4, 0), (-5, 0), (-6, 0), (-7, 0)], #another path
