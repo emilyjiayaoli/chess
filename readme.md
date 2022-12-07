@@ -2,7 +2,7 @@
 
 This is a 2-player chess game. Main features include Check/Checkmate detection, En Passant, and Pawn Promotion.
 
-[](./demo.png).
+![Demo](./demo.png).
 
 **Run Instructions**
 1. Install proper libraries. Make sure tikinter is downloaded from cmu_112_graphics.py on the [CMU 15-112 website](https://www.cs.cmu.edu/~112/notes/notes-graphics.html#installingModules).
