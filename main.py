@@ -20,6 +20,7 @@ def appStarted(app):
     app.winner = None
 
     # Image
+    # Image credit: https://www.freepik.com/premium-vector/chess-board-game-cartoon-illustration_28657886.htm
     app.imagePath = './homescreen.png'
     app.entireImage = app.scaleImage(app.loadImage(app.imagePath), 2/5)
     app.instructionsImgPath = './instructions.png'
