@@ -6,10 +6,14 @@ class Piece:
     def __init__(self, app, name, isWhite, row, col):
         self.name = name
         self.isWhite = isWhite
+        
         self.row = row
         self.col = col
+
         self.rowBef = None
         self.colBef = None
+
+        # Sprite sheet taken from https://www.kindpng.com/imgv/hxbhmb_chess-pieces-png-chess-pieces-sprite-sheet-transparent/
         self.imagePath = './pieces_sprite.png'
         self.entireImage = app.scaleImage(app.loadImage(self.imagePath), 1/5)
         self.imageWidth = 64.5
